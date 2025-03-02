@@ -1,0 +1,56 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 서버리스 상품 및 이벤트 관리 API
+
+Globals:
+  Function:
+    Timeout: 30
+
+Resources:
+  CreateProductFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.createProduct
+      Runtime: nodejs18.x
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /products
+            Method: post
+
+  CreateEventFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.createEvent
+      Runtime: nodejs18.x
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /events
+            Method: post
+
+  OrderPageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.getOrderPage
+      Runtime: nodejs18.x
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /order/{event_id}
+            Method: get
+
+  SubmitOrderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.submitOrder
+      Runtime: nodejs18.x
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /order/submit
+            Method: post

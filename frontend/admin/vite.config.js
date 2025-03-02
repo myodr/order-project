@@ -10,6 +10,7 @@ export default defineConfig({
     vue(),
     vueDevTools(),
   ],
+  base: '/admin/',  // 배포 경로 설정
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))

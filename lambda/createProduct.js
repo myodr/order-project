@@ -5,6 +5,8 @@ const dynamoDb = new AWS.DynamoDB.DocumentClient();
 const PRODUCTS_TABLE = "ProductsTable";
 
 exports.handler = async (event) => {
+
+    console.log("chk event" , event.body);
     const data = JSON.parse(event.body);
     const productId = uuidv4();
 
@@ -20,6 +22,8 @@ exports.handler = async (event) => {
             imageUrl: data.imageUrl
         }
     };
+
+    console.log("params check", params);
 
     try {
         await dynamoDb.put(params).promise();

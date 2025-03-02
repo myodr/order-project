@@ -545,4 +545,34 @@ aws dynamodb create-table \
 4. **테이블 생성 후**
   - **PUT / GET / UPDATE** 등의 DynamoDB API(또는 AWS CLI 명령)로 데이터를 삽입, 조회할 수 있습니다.
 
-이상으로 **로컬 및 서버 환경에서 DynamoDB 테이블을 생성하기 위한 스크립트** 예시였습니다.  
+이상으로 **로컬 및 서버 환경에서 DynamoDB 테이블을 생성하기 위한 스크립트** 예시였습니다.
+
+---
+## local 환경 테스트
+### - lambda
+1. **aws-cli 환경 선택**
+  - intelliJ 등 aws-tools-kit credentials 선택
+  - aws terminal 실행 및 터미널 상단에서 실행환경 확인
+2. **express 실행**
+  - local-lambda 폴더에서 npm start 실행
+  - 
+### - frontend(vue)
+  - proxy router 설정 : /api 경로를 localhost:3000 으로 연결
+  - 
+1. **admin 환경**
+```bash
+  cd ./frontend/admin
+  npm run dev
+```
+
+2. **user 환경**
+```bash
+  cd ./frontend/user
+  npm run dev
+```
+### test page
+1. getEventPage 호출
+  http://localhost:3000/getEventPage/4c6d53fb-87eb-409c-9b7b-dadb5896973
+
+---
+

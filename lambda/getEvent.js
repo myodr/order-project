@@ -7,13 +7,16 @@ const PRODUCTS_TABLE = "ProductsTable";
 
 exports.handler = async (event) => {
     const eventId = event.pathParameters.event_id;
-
     const eventParams = { TableName: EVENTS_TABLE, Key: { eventId } };
+
+    console.log("check event_id", eventId, eventParams);
+
     try {
         const eventResult = await dynamoDb.get(eventParams).promise();
         const eventInfo = eventResult.Item;
 
         if (!eventInfo) {
+            console.log("not found", eventId);
             return { statusCode: 404, body: "Event not found" };
         }
 

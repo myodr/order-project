@@ -447,10 +447,6 @@ aws dynamodb create-table \
         ],
         "Projection": {
           "ProjectionType": "ALL"
-        },
-        "ProvisionedThroughput": {
-          "ReadCapacityUnits": 1,
-          "WriteCapacityUnits": 1
         }
       }
     ]' \
@@ -473,10 +469,6 @@ aws dynamodb create-table \
         ],
         "Projection": {
           "ProjectionType": "ALL"
-        },
-        "ProvisionedThroughput": {
-          "ReadCapacityUnits": 1,
-          "WriteCapacityUnits": 1
         }
       }
     ]' \
@@ -516,10 +508,6 @@ aws dynamodb create-table \
         ],
         "Projection": {
           "ProjectionType": "ALL"
-        },
-        "ProvisionedThroughput": {
-          "ReadCapacityUnits": 1,
-          "WriteCapacityUnits": 1
         }
       }
     ]' \

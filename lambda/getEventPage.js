@@ -1,58 +1,14 @@
 const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
 
-const {createEvent} = require('createEvent');
-
-// 환경 변수로 로컬 환경인지 확인 (기본값: AWS 실환경)
-const IS_LOCAL = true;
-
-// 로컬 환경이면 DynamoDB Local을 사용하고, 실환경이면 AWS 기본 DynamoDB 사용
-const dynamoDb = new AWS.DynamoDB.DocumentClient(
-    IS_LOCAL
-        ? { endpoint: "http://host.docker.internal:8000", region: "us-east-1" }
-        : {}
-);
+const dynamoDb = new AWS.DynamoDB.DocumentClient({});
 
 const PRODUCTS_TABLE = "ProductsTable";
 const EVENTS_TABLE = "EventsTable";
 const EVENT_ITEMS_TABLE = "EventItemsTable";
-const ORDERS_TABLE = "OrdersTable";
-
-/**
- * 상품 등록 API
- * POST /products
- */
-exports.createProduct = async (event) => {
-    const data = JSON.parse(event.body);
-    const productId = uuidv4();
-
-    const params = {
-        TableName: PRODUCTS_TABLE,
-        Item: {
-            productId,
-            sellerId: data.sellerId,
-            name: data.name,
-            description: data.description,
-            basePrice: data.basePrice,
-            stock: data.stock,
-            imageUrl: data.imageUrl
-        }
-    };
-
-    try {
-        await dynamoDb.put(params).promise();
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ message: "Product created successfully", productId })
-        };
-    } catch (error) {
-        return { statusCode: 500, body: JSON.stringify({ error: "Error creating product", details: error.message }) };
-    }
-};
 
 
-
-exports.getOrderPage = async (event) => {
+exports.handler = async (event) => {
     const eventId = event.pathParameters.event_id;
     const now = new Date().toISOString();
 
@@ -258,60 +214,4 @@ exports.getOrderPage = async (event) => {
         </html>
     `;
     return { statusCode: 200, headers: { "Content-Type": "text/html" }, body: html };
-};
-
-
-exports.submitOrder = async (event) => {
-    const body = new URLSearchParams(event.body);
-    const eventId = event.queryStringParameters.event_id;
-    const buyerId = "buyer-001";  // 실제 환경에서는 로그인 사용자 ID 사용
-
-    let orderItems = [];
-    for (let key of body.keys()) {
-        if (key.startsWith("quantity_")) {
-            let productId = key.replace("quantity_", "");
-            let quantity = parseInt(body.get(key));
-            if (quantity > 0) {
-                orderItems.push({ productId, quantity });
-            }
-        }
-    }
-
-    if (orderItems.length === 0) {
-        return {
-            statusCode: 400,
-            body: JSON.stringify({ error: "주문할 상품을 선택하세요." })
-        };
-    }
-
-    const orderId = `ORD-${Date.now()}`;
-    const totalAmount = orderItems.reduce((sum, item) => sum + (item.quantity * 1000), 0);  // 임시 가격 로직
-
-    const orderData = {
-        TableName: ORDERS_TABLE,
-        Item: {
-            orderId,
-            eventId,
-            buyerId,
-            orderItems,
-            totalAmount,
-            orderTime: new Date().toISOString(),
-            status: "PENDING"
-        }
-    };
-
-    try {
-        await dynamoDb.put(orderData).promise();
-        return {
-            statusCode: 200,
-            headers: { "Content-Type": "text/html" },
-            body: `<h2>주문이 완료되었습니다.</h2><p>주문번호: ${orderId}</p>`
-        };
-    } catch (error) {
-        console.error(error);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: "주문을 처리하는 중 오류가 발생했습니다." })
-        };
-    }
 };

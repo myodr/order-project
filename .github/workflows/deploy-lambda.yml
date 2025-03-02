@@ -1,0 +1,66 @@
+name: Deploy AWS Lambda Functions
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'lambda/**'
+
+jobs:
+  deploy:
+    name: Deploy Modified AWS Lambda Functions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        working-directory: lambda
+        run: npm install
+
+      - name: Find Modified Handlers
+        id: find_modified
+        run: |
+          # 변경된 파일 목록 가져오기
+          MODIFIED_FILES=$(git diff --name-only HEAD^ HEAD | grep '^lambda/' | grep '\.js$' || true)
+          
+          # 수정된 핸들러 목록 추출
+          HANDLERS=""
+          for FILE in $MODIFIED_FILES; do
+            HANDLER_NAME=$(basename $FILE .js)
+            HANDLERS="$HANDLERS $HANDLER_NAME"
+          done
+          
+          # GitHub Actions에서 사용할 환경 변수 설정
+          echo "modified_handlers=$HANDLERS" >> $GITHUB_ENV
+
+      - name: Package and Deploy Modified Lambda Functions
+        env:
+          AWS_REGION: "ap-northeast-2"
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          mkdir -p lambda_temp
+          cp -r lambda/package.json lambda/node_modules lambda_temp/
+
+          for FUNCTION in ${{ env.modified_handlers }}; do
+            echo "Packaging and Deploying $FUNCTION..."
+          
+            # 각 핸들러를 포함한 ZIP 패키지 생성
+            cp lambda/$FUNCTION.js lambda_temp/app.js
+            cd lambda_temp
+            zip -r $FUNCTION.zip .
+            cd ..
+          
+            # AWS Lambda 배포
+            aws lambda update-function-code \
+              --function-name $FUNCTION \
+              --zip-file fileb://lambda_temp/$FUNCTION.zip \
+              --region $AWS_REGION
+          done

@@ -1,4 +1,4 @@
-name: Frontend Deploy to S3
+name: Deploy Admin Frontend to S3
 
 on:
   push:
@@ -6,11 +6,11 @@ on:
       - main
       - ej
     paths:
-      - 'frontend/**'
+      - 'frontend/admin/**'
 
 jobs:
   deploy:
-    name: Deploy Vue.js to S3
+    name: Deploy Admin Frontend to S3
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -22,20 +22,20 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        working-directory: frontend
+        working-directory: frontend/admin
         run: npm install
 
-      - name: Build Vue.js app
-        working-directory: frontend
+      - name: Build Admin Vue.js app
+        working-directory: frontend/admin
         run: npm run build
 
-      - name: Upload to S3
+      - name: Upload Admin to S3
         uses: jakejarvis/s3-sync-action@master
         with:
           args: --acl public-read --delete
         env:
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_ADMIN_BUCKET }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: "ap-northeast-2"
-          SOURCE_DIR: "frontend/dist"
+          SOURCE_DIR: "frontend/admin/dist"

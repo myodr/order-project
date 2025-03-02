@@ -1,0 +1,11 @@
+Resources:
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      Timeout: 300
+      MemorySize: 128
+      Handler: app.createProduct
+      CodeUri: /Users/kgssks/gitWork/order-project/lambda
+      Runtime: nodejs18.x
+      Architectures:
+        - x86_64

@@ -7,29 +7,30 @@ const PRODUCTS_TABLE = "ProductsTable";
 
 exports.handler = async (event) => {
     const eventId = event.pathParameters.event_id;
-    const eventParams = { TableName: EVENTS_TABLE, Key: { eventId } };
 
-    console.log("check event_id", eventId, eventParams);
+    // `eventsFullManage`를 포함한 전체 이벤트 정보 조회
+    const eventParams = {
+        TableName: EVENTS_TABLE,
+        Key: { eventId },
+        ProjectionExpression: "eventsFullManage"
+    };
 
+    let eventInfo;
     try {
         const eventResult = await dynamoDb.get(eventParams).promise();
-        const eventInfo = eventResult.Item;
+        eventInfo = eventResult.Item?.eventsFullManage;
 
         if (!eventInfo) {
-            console.log("not found", eventId);
-            return { statusCode: 404, body: "Event not found" };
+            return { statusCode: 404, body: "이벤트 정보를 찾을 수 없습니다." };
         }
-
-        const productParams = {
-            TableName: EVENT_ITEMS_TABLE,
-            KeyConditionExpression: "eventId = :eventId",
-            ExpressionAttributeValues: { ":eventId": eventId }
-        };
-        const productResult = await dynamoDb.query(productParams).promise();
-        const eventItems = productResult.Items;
-
-        return { statusCode: 200, body: JSON.stringify({ eventInfo, eventItems }) };
     } catch (error) {
-        return { statusCode: 500, body: JSON.stringify({ error: "Error fetching event data", details: error.message }) };
+        console.error(error);
+        return { statusCode: 500, body: "이벤트 정보를 가져오는 중 오류 발생" };
     }
+
+    return {
+        statusCode: 200,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(eventInfo)
+    };
 };

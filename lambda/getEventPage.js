@@ -11,20 +11,20 @@ const EVENT_ITEMS_TABLE = "EventItemsTable";
 exports.handler = async (event) => {
     const eventId = event.pathParameters.event_id;
     const now = new Date().toISOString();
-
-    // 1️⃣ 이벤트 정보 조회 (유효 기간 확인)
+// `eventsFullManage`를 포함한 전체 이벤트 정보 조회
     const eventParams = {
         TableName: EVENTS_TABLE,
-        Key: { eventId }
+        Key: { eventId },
+        ProjectionExpression: "eventsFullManage"
     };
 
     let eventInfo;
     try {
         const eventResult = await dynamoDb.get(eventParams).promise();
-        eventInfo = eventResult.Item;
+        eventInfo = eventResult.Item?.eventsFullManage;
 
         if (!eventInfo) {
-            return { statusCode: 404, body: "이벤트를 찾을 수 없습니다." };
+            return { statusCode: 404, body: "이벤트 정보를 찾을 수 없습니다." };
         }
     } catch (error) {
         console.error(error);
@@ -32,60 +32,7 @@ exports.handler = async (event) => {
     }
 
     const isExpired = now > eventInfo.endTime;
-
-    // 2️⃣ 이벤트 내 상품 조회 (EventItemsTable)
-    const productParams = {
-        TableName: EVENT_ITEMS_TABLE,
-        KeyConditionExpression: "eventId = :eventId",
-        ExpressionAttributeValues: { ":eventId": eventId }
-    };
-
-    let eventItems = [];
-    try {
-        const productResult = await dynamoDb.query(productParams).promise();
-        eventItems = productResult.Items;
-    } catch (error) {
-        console.error(error);
-        return { statusCode: 500, body: "이벤트 상품 정보를 가져오는 중 오류 발생" };
-    }
-
-    // 3️⃣ ProductsTable에서 상품 상세 정보 가져오기
-    const productIds = eventItems.map(item => item.productId);
-    let productDetails = {};
-
-    if (productIds.length > 0) {
-        const productQuery = {
-            RequestItems: {
-                [PRODUCTS_TABLE]: {
-                    Keys: productIds.map(id => ({ productId: id }))
-                }
-            }
-        };
-
-        try {
-            const productResult = await dynamoDb.batchGet(productQuery).promise();
-            productDetails = productResult.Responses[PRODUCTS_TABLE].reduce((acc, product) => {
-                acc[product.productId] = product;
-                return acc;
-            }, {});
-        } catch (error) {
-            console.error(error);
-            return { statusCode: 500, body: "상품 정보를 가져오는 중 오류 발생" };
-        }
-    }
-
-    // 4️⃣ 이벤트 상품 정보와 ProductsTable 데이터 병합
-    const items = eventItems.map(item => {
-        const product = productDetails[item.productId] || {};
-        return {
-            productId: item.productId,
-            name: product.name || "상품 정보 없음",
-            description: product.description || "",
-            imageUrl: product.imageUrl || "",
-            eventPrice: item.eventPrice,
-            stock: item.stock
-        };
-    });
+    let items = eventInfo.items;
 
     // 3️⃣ 동적 HTML 생성 (Bootstrap 기반)
     const html = `

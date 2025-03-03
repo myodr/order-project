@@ -6,7 +6,7 @@ provider:
   region: ap-northeast-2
   memorySize: 128
   timeout: 10
-  profile: ${opt:aws-profile, env:AWS_PROFILE, 'ehrdkb2'}  # 로컬에서는 ehrdkb2 프로필 사용
+#  profile: ${opt:aws-profile, env:AWS_PROFILE, 'ehrdkb2'}  # 로컬에서는 ehrdkb2 프로필 사용
   iamRoleStatements:
     - Effect: Allow
       Action:

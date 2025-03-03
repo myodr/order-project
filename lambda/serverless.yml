@@ -53,7 +53,7 @@ functions:
 
 plugins:
   - serverless-offline  # 로컬 테스트용 플러그인 (선택)
-
-package:
-  exclude:
-    - node_modules/aws-sdk/**  # AWS Lambda 환경에서는 기본 제공됨
+#
+#package:
+#  exclude:
+#    - node_modules/aws-sdk/**  # AWS Lambda 환경에서는 기본 제공됨

@@ -21,14 +21,14 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        working-directory: lambda
+        working-directory: backend/lambda
         run: npm install
 
       - name: Install Serverless Framework
         run: npm install -g serverless@3
 
       - name: Deploy to AWS using Serverless
-        working-directory: lambda
+        working-directory: backend/lambda
         run: serverless deploy
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}

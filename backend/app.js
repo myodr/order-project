@@ -10,18 +10,19 @@ app.use(express.json());
 
 // 기본 라우터
 app.get('/', (req, res) => {
-    res.send('Hello from Express!');
+    res.send('Hello from internet!');
 });
 
-app.get('/getEvents/:id', async (req, res) =>  {
+app.get('/get-event-page/:id', async (req, res) =>  {
     let event = {
         pathParameters:{
             event_id: req.params.id
         }
     }
     let resp = await getEventPage.handler(event);
-    res.send(resp);
+    res.send(resp.body);
 });
+
 // 예시: POST 요청 처리
 app.post('/api/data', (req, res) => {
     const data = req.body;

@@ -556,9 +556,16 @@ aws dynamodb create-table \
 1. **aws-cli 환경 선택**
   - intelliJ 등 aws-tools-kit credentials 선택
   - aws terminal 실행 및 터미널 상단에서 실행환경 확인
-2. **express 실행**
-  - local-lambda 폴더에서 npm start 실행
-  - 
+  - aws credentials 설정
+  - backend 폴더에서 node 실행
+
+```bash 
+export AWS_PROFILE=ehrdkb-2
+npm run dev               
+```
+
+
+
 ### - frontend(vue)
   - proxy router 설정 : /api 경로를 localhost:3000 으로 연결
   - 
@@ -568,14 +575,6 @@ aws dynamodb create-table \
   npm run dev
 ```
 
-2. **user 환경**
-```bash
-  cd ./frontend/user
-  npm run dev
-```
-### test page
-1. getEventPage 호출
-  http://localhost:3000/getEventPage/4c6d53fb-87eb-409c-9b7b-dadb5896973
-
 ---
 
+http://localhost:3000/getEventPage/4c6d53fb-87eb-409c-9b7b-dadb5896973

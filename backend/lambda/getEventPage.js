@@ -1,6 +1,6 @@
 const AWS = require('aws-sdk');
 
-const dynamoDb = new AWS.DynamoDB.DocumentClient({});
+const dynamoDb = new AWS.DynamoDB.DocumentClient({ region: 'ap-northeast-2' });
 
 const EVENTS_TABLE = "EventsTable";
 
@@ -40,6 +40,7 @@ exports.handler = async (event) => {
             <title>주문 이벤트</title>
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
             <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+            <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
             <style>
                 .product { margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
                 .product img { width: 100px; cursor: pointer; }
@@ -83,9 +84,9 @@ exports.handler = async (event) => {
                             </div>
                             <div class="quantity-controls">
                                 ${item.stock > 0 ? `
-                                    <button type="button" class="btn btn-outline-secondary btn-sm minus" data-product="${item.productId}" data-price="${item.eventPrice}">-</button>
-                                    <input type="text" class="form-control text-center mx-2 quantity" style="width: 40px;" value="0" min="0" max="${item.stock}" readonly data-product="${item.productId}">
-                                    <button type="button" class="btn btn-outline-secondary btn-sm plus" data-product="${item.productId}" data-price="${item.eventPrice}">+</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm minus" data-product="${item.productId}">-</button>
+                                    <input type="text" class="form-control text-center mx-2 quantity" style="width: 40px;" value="0" min="0" max="${item.stock}" readonly data-price="${item.eventPrice}" data-product="${item.productId}">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm plus" data-product="${item.productId}">+</button>
                                 ` : ''}
                             </div>
                         </div>
@@ -96,8 +97,8 @@ exports.handler = async (event) => {
                 <div class="mt-4">
                         <label class="form-label">배송지 주소</label>
                         <div class="d-flex">
-                            <input type="text" id="zipcode" class="form-control me-2" placeholder="우편번호" readonly>
-                            <button type="button" class="btn btn-primary" onclick="searchZipcode()">우편번호 검색</button>
+                            <input type="text" id="postcode" class="form-control me-2" placeholder="우편번호" readonly>
+                            <button onclick="execDaumPostcode()">우편번호 검색</button>                       
                         </div>
                         <input type="text" id="address" class="form-control mt-2" placeholder="상세 주소 입력">
                 </div>
@@ -128,12 +129,23 @@ exports.handler = async (event) => {
             `}
 
             <script>
+                function execDaumPostcode() {
+                    new daum.Postcode({
+                      oncomplete: function(data) {
+                        document.getElementById('postcode').value = data.zonecode;
+                        document.getElementById('address').value = data.address;
+                      }
+                    }).open();
+                }
+            
                 function updateTotalAmount() {
                     let total = 0;
                     document.querySelectorAll(".quantity").forEach(input => {
+                        console.log( "chk", input);
                         let quantity = parseInt(input.value) || 0;
                         let price = parseInt(input.dataset.price) || 0;
                         total += quantity * price;
+                        console.log(total, price)
                     });
                     document.getElementById("totalAmount").innerText = "총 주문금액: ₩" + total.toLocaleString();
                 }

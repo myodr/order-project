@@ -40,7 +40,7 @@ exports.handler = async (event) => {
             <title>주문 이벤트</title>
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
             <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-            <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+            <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
             <style>
                 .product { margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
                 .product img { width: 100px; cursor: pointer; }
@@ -92,18 +92,20 @@ exports.handler = async (event) => {
                         </div>
                     `).join('')}
                 </div>
-                <div id="totalAmount">총 주문금액: 0원</div>
-                
+                <div id="totalAmount">총 주문금액: 0원</div>                
                 <div class="mt-4">
                         <label class="form-label">배송지 주소</label>
                         <div class="d-flex">
-                            <input type="text" id="postcode" class="form-control me-2" placeholder="우편번호" readonly>
-                            <button onclick="execDaumPostcode()">우편번호 검색</button>                       
+                            <input type="text" id="postcode" class="form-control me-2" placeholder="우편번호" readonly>                                                       
+                            <button type="button" class="btn btn-warning w-100 mt-2" onclick="execDaumPostcode()">우편번호 검색</button>                                               
                         </div>
-                        <input type="text" id="address" class="form-control mt-2" placeholder="상세 주소 입력">
+                        <input type="text" id="address" class="form-control me-2 mt-2" placeholder="주소" readonly>
+                        <input type="text" id="address_etc" class="form-control mt-2" placeholder="상세 주소 입력">
                 </div>
-
-                <button type="button" class="btn btn-danger w-100 mt-3" onclick="showConfirmModal()">주문하기</button>
+                <button type="button" class="btn btn-danger w-100 mt-3 mb-20" onclick="showConfirmModal()">주문하기</button>
+                <div class="mt-8">
+                
+</div>
                 </form>
 
                 <!-- Confirm Modal -->
@@ -129,6 +131,7 @@ exports.handler = async (event) => {
             `}
 
             <script>
+            
                 function execDaumPostcode() {
                     new daum.Postcode({
                       oncomplete: function(data) {

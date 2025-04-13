@@ -79,12 +79,6 @@ exports.handler = async (event) => {
         TableName: EVENTS_TABLE,
         Item: {
             eventId,
-            sellerId: data.sellerId,
-            title: data.title,
-            description: data.description,
-            startTime: data.startTime,
-            endTime: data.endTime,
-            status: "ACTIVE",
             eventsFullManage: fullEventData
         }
     };

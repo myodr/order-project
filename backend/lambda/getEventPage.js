@@ -95,7 +95,7 @@ exports.handler = async (event) => {
                         </div>
                     `).join('')}
                 </div>
-                <div id="totalAmount">총 주문금액: ₩0</div>
+                <div id="totalAmount">총 주문금액: 0원</div>
                 
                 <div class="mt-4">
                         <label class="form-label">배송지 주소</label>

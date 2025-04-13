@@ -1,12 +1,8 @@
 const AWS = require('aws-sdk');
-const { v4: uuidv4 } = require('uuid');
 
 const dynamoDb = new AWS.DynamoDB.DocumentClient({});
 
-const PRODUCTS_TABLE = "ProductsTable";
 const EVENTS_TABLE = "EventsTable";
-const EVENT_ITEMS_TABLE = "EventItemsTable";
-
 
 exports.handler = async (event) => {
     const eventId = event.pathParameters.event_id;

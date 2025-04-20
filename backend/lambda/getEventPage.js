@@ -129,9 +129,10 @@ exports.handler = async (event) => {
                         <label class="row ms-2">[입금은행 안내]<br/> 국민은행 000-00-0000-000 ㅁㅁㅁㅁ</label>                        
                         <input type="text" class="form-control mt-2" id="payname" class="form-control mt-2" placeholder="입금자명">                        
                 </div>                        
-                
+                <div class="mt-2">
                 <button type="button" class="btn btn-danger w-100 mt-3 mb-20" onclick="showConfirmModal()">주문하기</button>
-                <div class="mt-8"></div>
+                </div>
+                <div class="mt-4 mb-2 text-center text-secondary">© ejp</div>
             </form>
 
             <!-- Confirm Modal -->

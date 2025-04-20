@@ -1,115 +1,151 @@
 const AWS = require("aws-sdk");
 const { v4: uuidv4 } = require("uuid");
 
-const dynamoDb = new AWS.DynamoDB.DocumentClient();
+const dynamoDb = new AWS.DynamoDB.DocumentClient({ region: "ap-northeast-2" });
+
 const ORDERS_TABLE = "OrdersTable";
-const EVENTS_TABLE = "EventsTable";
-const EVENT_ITEMS_TABLE = "EventItemsTable";
 const PRODUCTS_TABLE = "ProductsTable";
+const EVENT_ITEMS_TABLE = "EventItemsTable";
+const EVENTS_TABLE = "EventsTable";
 
-/**
- * 주문 생성 API
- * POST /orders
- */
-exports.handler = async (event) => {
-    const data = JSON.parse(event.body);
-    const orderId = uuidv4();
+const ORDER_SEQUENCE_TABLE = "OrderSequenceTable";
 
-    // 1️⃣ 주문 정보 준비
-    const orderItems = data.items.map(item => ({
-        productId: item.productId,
-        quantity: item.quantity
-    }));
+// 현재 날짜를 YYYYMMDD 형식으로
+const today = new Date().toISOString().slice(0, 10).replace(/-/g, ""); // ex: 20250423
 
-    const orderParams = {
-        TableName: ORDERS_TABLE,
-        Item: {
-            orderId,
-            eventId: data.eventId,
-            buyerId: data.buyerId,
-            orderItems,
-            totalAmount: data.totalAmount,
-            orderTime: new Date().toISOString(),
-            status: "PENDING"
-        }
+// 1️⃣ orderNo 생성용 seq 조회 및 증가
+const getOrderSeq = async () => {
+    const params = {
+        TableName: ORDER_SEQUENCE_TABLE,
+        Key: { dateKey: today },
+        UpdateExpression: "SET seq = if_not_exists(seq, :zero) + :incr",
+        ExpressionAttributeValues: {
+            ":zero": 0,
+            ":incr": 1
+        },
+        ReturnValues: "UPDATED_NEW"
     };
 
-    // 2️⃣ ProductsTable 및 EventItemsTable의 재고 업데이트 트랜잭션 생성
-    const updateStockParams = orderItems.flatMap(item => [
+    const result = await dynamoDb.update(params).promise();
+    return result.Attributes.seq; // ex: 1, 2, 3...
+};
+
+exports.handler = async (event) => {
+
+    console.log("chk type", typeof event.body, event.body);
+    let data;
+    if(typeof event.body){
+        data = event.body;
+    }else{
+        data = JSON.parse(event.body);
+    }
+
+    const orderId = uuidv4();
+    const now = new Date().toISOString();
+    const seq = await getOrderSeq();
+    const orderNo = `${today}-${String(seq).padStart(4, "0")}`; // ex: 20250423-0001
+
+    const {
+        eventId,
+        buyerId,
+        buyerName,
+        phone,
+        address,
+        postcode,
+        addressEtc,
+        payname,
+        items,
+        totalAmount
+    } = data;
+
+    const order = {
+        orderId,
+        orderNo,
+        eventId,
+        buyerId,
+        buyerName,
+        phone,
+        postcode,
+        addressEtc,
+        address,
+        payname,           // ✅ 입금자명 저장
+        isPaid: false,     // ✅ 입금확인 여부 (초기값 false)
+        orderItems: items,
+        totalAmount,
+        orderTime: now,
+        status: "PENDING"
+    };
+
+    const stockUpdateItems = items.flatMap(item => [
         {
             Update: {
                 TableName: PRODUCTS_TABLE,
                 Key: { productId: item.productId },
-                UpdateExpression: "SET stock = stock - :q",
-                ConditionExpression: "stock >= :q",
-                ExpressionAttributeValues: { ":q": item.quantity }
+                UpdateExpression: "SET stock = stock - :qty",
+                ConditionExpression: "stock >= :qty",
+                ExpressionAttributeValues: { ":qty": item.quantity }
             }
         },
         {
             Update: {
                 TableName: EVENT_ITEMS_TABLE,
-                Key: { eventId: data.eventId, productId: item.productId },
-                UpdateExpression: "SET stock = stock - :q",
-                ConditionExpression: "stock >= :q",
-                ExpressionAttributeValues: { ":q": item.quantity }
+                Key: { eventId, productId: item.productId },
+                UpdateExpression: "SET stock = stock - :qty",
+                ConditionExpression: "stock >= :qty",
+                ExpressionAttributeValues: { ":qty": item.quantity }
             }
         }
     ]);
 
-    // 3️⃣ EventsTable에서 eventsFullManage 조회
-    const eventParams = {
+    const eventData = await dynamoDb.get({
         TableName: EVENTS_TABLE,
-        Key: { eventId: data.eventId },
+        Key: { eventId },
         ProjectionExpression: "eventsFullManage"
-    };
+    }).promise();
 
-    let eventInfo;
-    try {
-        const eventResult = await dynamoDb.get(eventParams).promise();
-        eventInfo = eventResult.Item?.eventsFullManage;
-
-        if (!eventInfo) {
-            return { statusCode: 404, body: "이벤트 정보를 찾을 수 없습니다." };
-        }
-    } catch (error) {
-        console.error(error);
-        return { statusCode: 500, body: "이벤트 정보를 가져오는 중 오류 발생" };
+    const full = eventData.Item?.eventsFullManage;
+    if (!full) {
+        return { statusCode: 404, body: JSON.stringify({ message: "이벤트 정보를 찾을 수 없습니다." }) };
     }
 
-    // 4️⃣ eventsFullManage의 재고 업데이트
-    const updatedItems = eventInfo.items.map(item => {
-        const orderedItem = orderItems.find(o => o.productId === item.productId);
-        return orderedItem ? { ...item, stock: item.stock - orderedItem.quantity } : item;
+    const updatedItems = full.items.map(item => {
+        const match = items.find(i => i.productId === item.productId);
+        return match ? { ...item, stock: item.stock - match.quantity } : item;
     });
 
-    const updateEventParams = {
-        TableName: EVENTS_TABLE,
-        Key: { eventId: data.eventId },
-        UpdateExpression: "SET eventsFullManage.items = :updatedItems",
-        ExpressionAttributeValues: {
-            ":updatedItems": updatedItems
+    const updateFullManage = {
+        Update: {
+            TableName: EVENTS_TABLE,
+            Key: { eventId },
+            UpdateExpression: "SET eventsFullManage.#items = :updated",
+            ExpressionAttributeNames: {
+                "#items": "items"
+            },
+            ExpressionAttributeValues: {
+                ":updated": updatedItems
+            }
+
         }
     };
 
     try {
-        // 5️⃣ 트랜잭션 실행: 주문 추가, 재고 업데이트, eventsFullManage 업데이트
         await dynamoDb.transactWrite({
             TransactItems: [
-                { Put: orderParams },
-                ...updateStockParams,
-                { Update: updateEventParams }
+                { Put: { TableName: ORDERS_TABLE, Item: order } },
+                ...stockUpdateItems,
+                updateFullManage
             ]
         }).promise();
 
         return {
             statusCode: 200,
-            body: JSON.stringify({ message: "Order created successfully", orderId })
+            body: JSON.stringify({ message: "주문이 성공적으로 접수되었습니다.", orderId })
         };
     } catch (error) {
-        console.error("주문 처리 오류:", error);
+        console.error("주문 실패:", error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: "주문 생성 중 오류 발생", details: error.message })
+            body: JSON.stringify({ message: "주문 처리 중 오류 발생", details: error.message })
         };
     }
 };

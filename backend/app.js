@@ -4,6 +4,7 @@ const port = 3000;
 
 // const {getEvent}  = require('lambda/getEvent');
 const getEventPage = require('./lambda/getEventPage');
+const createOrder = require("./lambda/createOrder");
 
 // 미들웨어: JSON 바디 파싱
 app.use(express.json());
@@ -21,6 +22,18 @@ app.get('/get-event-page/:id', async (req, res) =>  {
     }
     let resp = await getEventPage.handler(event);
     res.send(resp.body);
+});
+
+// 예시: POST 요청 처리
+app.post('/create-order', async(req, res) => {
+    const data = req.body;
+    console.log('Received data:', data);
+    let event = {
+          body:data
+    }
+    let resp = await createOrder.handler(event);
+    console.log(resp.statusCode);
+    res.status(resp.statusCode).send(resp.body);
 });
 
 // 예시: POST 요청 처리

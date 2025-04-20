@@ -42,7 +42,8 @@ exports.handler = async (event) => {
             <meta property="og:title" content="${eventInfo.title}" />
             <meta property="og:description" content="${eventInfo.description}" />
             <meta property="og:image" content="${items?.[0]?.imageUrl || 'https://via.placeholder.com/600x400?text=No+Image'}" />
-            <meta property="og:image:alt" content="${items?.[0]?.name || '이벤트 대표 이미지'}" />
+            <meta property="og:image:alt" content="${items?.[0]?.name || eventInfo.title }" />
+            <meta property="og:url" content="https://www.myodr.store/get-event-page/${eventInfo.eventId}" />
             <title>myOrder-${eventInfo.title}</title>
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
@@ -197,11 +198,9 @@ exports.handler = async (event) => {
     function updateTotalAmount() {
         let total = 0;
         document.querySelectorAll(".quantity").forEach(input => {
-            console.log( "chk", input);
             let quantity = parseInt(input.value) || 0;
             let price = parseInt(input.dataset.price) || 0;
             total += quantity * price;
-            console.log(total, price)
         });
         document.getElementById("totalAmount").innerText = \`총 주문금액: \$\{total.toLocaleString()\}원\`;
     }
@@ -300,6 +299,61 @@ exports.handler = async (event) => {
         const modal = new bootstrap.Modal(document.getElementById("confirmModal"));
         modal.show();
     }
+    
+    async function submitOrder() {
+    const eventId = new URLSearchParams(window.location.search).get("event_id") || location.pathname.split("/").pop();
+    const buyerName = document.getElementById("buyername").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+    const postcode = document.getElementById("postcode").value.trim();
+    const address = document.getElementById("address").value.trim();
+    const addressEtc = document.getElementById("address_etc").value.trim();
+    const payname = document.getElementById("payname").value.trim();
+
+    const items = [];
+    let totalAmount = 0;
+
+    document.querySelectorAll(".quantity").forEach(input => {
+      const quantity = parseInt(input.value) || 0;
+      const price = parseInt(input.dataset.price) || 0;
+      const productId = input.dataset.product;
+
+      if (quantity > 0) {
+        items.push({ productId, quantity });
+        totalAmount += quantity * price;
+      }
+    });
+
+    const payload = {
+      eventId,
+      buyerId: "guest", // 로그인 사용자라면 여기에 사용자 ID 사용
+      buyerName,
+      phone,
+      payname,
+      postcode,
+      addressEtc, 
+      address: \`[\${postcode}] \${address} \${addressEtc}\`,      
+      items,
+      totalAmount
+    };
+
+    try {
+      const res = await fetch("/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        alert("주문이 성공적으로 접수되었습니다!");
+        // location.reload();
+      } else {
+        const err = await res.json();
+        alert("주문 실패: " + err.message);
+      }
+    } catch (err) {
+      alert("네트워크 오류: " + err.message);
+    }
+  }
 </script>
 </body>
 </html>

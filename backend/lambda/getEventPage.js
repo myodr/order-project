@@ -379,7 +379,7 @@ exports.handler = async (event) => {
     
           // 주문번호 표시
           document.getElementById("completedOrderNo").innerText = orderNo;
-          document.getElementById("viewOrderLink").href = \`/view-order/\${orderNo}\`;
+          document.getElementById("viewOrderLink").href = \`/viewOrder/\${orderNo}\`;
     
           // 주문 완료 모달 표시
           document.getElementById("orderLayer").innerHTML="";

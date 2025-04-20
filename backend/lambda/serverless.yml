@@ -19,35 +19,35 @@ functions:
     handler: createEvent.handler
     events:
       - http:
-          path: create-event
+          path: createEvent
           method: post
 
   createOrder:
     handler: createOrder.handler
     events:
       - http:
-          path: create-order
+          path: createOrder
           method: post
 
   createProduct:
     handler: createProduct.handler
     events:
       - http:
-          path: create-product
+          path: createProduct
           method: post
 
   getEvent:
     handler: getEvent.handler
     events:
       - http:
-          path: get-event/{event_id}
+          path: getEvent/{event_id}
           method: get
 
   getEventPage:
     handler: getEventPage.handler
     events:
       - http:
-          path: get-event-page/{event_key}
+          path: getEventPage/{event_key}
           method: get
       - http:
           path: /{event_key}
@@ -57,7 +57,7 @@ functions:
     handler: viewOrder.handler
     events:
       - http:
-          path: view-order/{event_no}
+          path: viewOrder/{event_no}
           method: get
 
 plugins:

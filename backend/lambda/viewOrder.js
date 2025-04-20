@@ -4,7 +4,7 @@ const dynamoDb = new AWS.DynamoDB.DocumentClient({ region: "ap-northeast-2" });
 const ORDERS_TABLE = "OrdersTable";
 
 exports.handler = async (event) => {
-    const orderNo = event.pathParameters.order_no;
+    const orderNo = event.pathParameters.event_no;
     const orderId = event.pathParameters.order_id || "noInput";
 
     const params = {

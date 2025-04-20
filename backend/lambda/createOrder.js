@@ -34,11 +34,13 @@ exports.handler = async (event) => {
 
     console.log("chk type", typeof event.body, event.body);
     let data;
-    if(typeof event.body){
+    if(typeof event.body === "object"){
         data = event.body;
     }else{
         data = JSON.parse(event.body);
     }
+
+
 
     const orderId = uuidv4();
     const now = new Date().toISOString();

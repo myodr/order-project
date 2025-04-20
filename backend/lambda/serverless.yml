@@ -47,7 +47,7 @@ functions:
     handler: getEventPage.handler
     events:
       - http:
-          path: get-event-page/{event_key}
+          path: getEventPage/{event_key}
           method: get
 
   viewOrder:

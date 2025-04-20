@@ -13,6 +13,8 @@ exports.handler = async (event) => {
 
     let eventInfo;
     try {
+
+
         // const eventResult = await dynamoDb.get(eventParams).promise();
 
         const eventResult = await dynamoDb.query({

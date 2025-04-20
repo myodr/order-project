@@ -36,8 +36,14 @@ exports.handler = async (event) => {
         <html lang="ko">
         <head>
             <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>주문 이벤트</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">            <!-- 📦 Open Graph 메타 정보 (공유 시 썸네일에 사용) -->
+            <meta property="og:type" content="website" />
+            <meta property="og:site_name" content="MyOrder.Store" />
+            <meta property="og:title" content="${eventInfo.title}" />
+            <meta property="og:description" content="${eventInfo.description}" />
+            <meta property="og:image" content="${items?.[0]?.imageUrl || 'https://via.placeholder.com/600x400?text=No+Image'}" />
+            <meta property="og:image:alt" content="${items?.[0]?.name || '이벤트 대표 이미지'}" />
+            <title>myOrder-${eventInfo.title}</title>
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
             <link rel="preconnect" href="https://fonts.googleapis.com">

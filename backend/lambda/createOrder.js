@@ -130,6 +130,10 @@ exports.handler = async (event) => {
         }
     };
 
+    //order 에 입금은행명, 입금자명을 eventData에서 받아 적용한다
+    order.payAccount = full.payAccount;
+    order.payAccountOwner = full.payAccountOwner;
+
     try {
         await dynamoDb.transactWrite({
             TransactItems: [
@@ -141,7 +145,7 @@ exports.handler = async (event) => {
 
         return {
             statusCode: 200,
-            body: JSON.stringify({ message: "주문이 성공적으로 접수되었습니다.", orderId })
+            body: JSON.stringify({ message: "주문이 성공적으로 접수되었습니다.", orderId , orderNo})
         };
     } catch (error) {
         console.error("주문 실패:", error);

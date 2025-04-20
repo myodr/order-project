@@ -5,19 +5,33 @@ const dynamoDb = new AWS.DynamoDB.DocumentClient({ region: 'ap-northeast-2' });
 const EVENTS_TABLE = "EventsTable";
 
 exports.handler = async (event) => {
-    const eventId = event.pathParameters.event_id;
+    const eventKey = event.pathParameters.event_key;
+
+    console.log("chk eventKey", eventKey)
     const now = new Date().toISOString();
 // `eventsFullManage`를 포함한 전체 이벤트 정보 조회
-    const eventParams = {
-        TableName: EVENTS_TABLE,
-        Key: { eventId },
-        ProjectionExpression: "eventsFullManage"
-    };
+//     const eventParams = {
+//         TableName: EVENTS_TABLE,
+//         Key: { eventId },
+//         ProjectionExpression: "eventsFullManage"
+//     };
+
+
 
     let eventInfo;
     try {
-        const eventResult = await dynamoDb.get(eventParams).promise();
-        eventInfo = eventResult.Item?.eventsFullManage;
+        // const eventResult = await dynamoDb.get(eventParams).promise();
+
+        const eventResult = await dynamoDb.query({
+            TableName: EVENTS_TABLE,
+            IndexName: "eventKey-index", // ✅ GSI 필요
+            KeyConditionExpression: "eventKey = :ek",
+            ExpressionAttributeValues: {
+                ":ek": eventKey
+            }
+        }).promise();
+
+        eventInfo = eventResult.Items[0]?.eventsFullManage;
 
         if (!eventInfo) {
             return { statusCode: 404, body: "이벤트 정보를 찾을 수 없습니다." };
@@ -43,7 +57,7 @@ exports.handler = async (event) => {
             <meta property="og:description" content="${eventInfo.description}" />
             <meta property="og:image" content="${items?.[0]?.imageUrl || 'https://via.placeholder.com/600x400?text=No+Image'}" />
             <meta property="og:image:alt" content="${items?.[0]?.name || eventInfo.title }" />
-            <meta property="og:url" content="https://www.myodr.store/get-event-page/${eventInfo.eventId}" />
+            <meta property="og:url" content="https://www.myodr.store/get-event-page/${eventInfo.eventKey}" />
             <title>myOrder-${eventInfo.title}</title>
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
@@ -84,7 +98,8 @@ exports.handler = async (event) => {
             </p>
 
             ${isExpired ? `<h3 class="text-danger text-center">이벤트가 종료되었습니다.</h3>` : `
-            <form id="orderForm">
+            <div id="orderLayer">
+            <form id="orderForm">            
                 <div id="productList">                
                 <label class="" style="font-size:1.1em;"><i class="bi bi-gift"></i> 상품주문</label>
                     ${items.map(item => `
@@ -133,7 +148,7 @@ exports.handler = async (event) => {
                 <div class="mt-2">
                         <label><i class="bi bi-credit-card" style="font-size: 1.2rem;"></i> 결제 정보</label>
                         <label class="row ms-2" style="font-size: 0.8rem;">* 결제 관련 안내 - 현재 계좌이체를 지원합니다.</label>
-                        <label class="row ms-2">[입금은행 안내]<br/> 국민은행 000-00-0000-000 ㅁㅁㅁㅁ</label>                        
+                        <label class="row ms-2">[입금은행 안내]<br/> ${eventInfo.payAccount} ${eventInfo.payAccountOwner}</label>                        
                         <input type="text" class="form-control mt-2" id="payname" class="form-control mt-2" placeholder="입금자명">                        
                 </div>                        
                 <div class="mt-2">
@@ -141,6 +156,7 @@ exports.handler = async (event) => {
                 </div>
                 <div class="mt-4 mb-2 text-center text-secondary">© ejp</div>
             </form>
+            </div>
 
             <!-- Confirm Modal -->
             <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
@@ -177,7 +193,25 @@ exports.handler = async (event) => {
                   </div>
                 </div>
               </div>
-            </div> 
+            </div>
+            
+            <!-- 주문완료 안내 모달 -->
+            <div class="modal fade" id="orderCompleteModal" tabindex="-1" aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                  <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">주문 완료</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body text-center">
+                    <p class="mb-2">주문이 성공적으로 접수되었습니다!</p>
+                    <p>주문번호: <strong id="completedOrderNo"></strong></p>
+                    <a id="viewOrderLink" class="btn btn-outline-success mt-2" target="_blank">주문 내역 확인</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+ 
             `}
 
 <script>
@@ -301,7 +335,7 @@ exports.handler = async (event) => {
     }
     
     async function submitOrder() {
-    const eventId = new URLSearchParams(window.location.search).get("event_id") || location.pathname.split("/").pop();
+    const eventId = "${eventInfo.eventId}";
     const buyerName = document.getElementById("buyername").value.trim();
     const phone = document.getElementById("phone").value.trim();
     const postcode = document.getElementById("postcode").value.trim();
@@ -316,9 +350,10 @@ exports.handler = async (event) => {
       const quantity = parseInt(input.value) || 0;
       const price = parseInt(input.dataset.price) || 0;
       const productId = input.dataset.product;
+      const name = input.closest(".product").querySelector("strong").innerText;
 
       if (quantity > 0) {
-        items.push({ productId, quantity });
+        items.push({ productId, quantity, name, price, amount: (quantity * price) });
         totalAmount += quantity * price;
       }
     });
@@ -344,15 +379,30 @@ exports.handler = async (event) => {
       });
 
       if (res.ok) {
-        alert("주문이 성공적으로 접수되었습니다!");
-        // location.reload();
+          const data = await res.json();
+          const orderNo = data.orderNo;
+    
+          // 주문번호 표시
+          document.getElementById("completedOrderNo").innerText = orderNo;
+          document.getElementById("viewOrderLink").href = \`/view-order/\${orderNo}\`;
+    
+          // 주문 완료 모달 표시
+          document.getElementById("orderLayer").innerHTML="";
+          
+          const modal = new bootstrap.Modal(document.getElementById("orderCompleteModal"));
+          modal.show();
       } else {
-        const err = await res.json();
-        alert("주문 실패: " + err.message);
+          const err = await res.json();
+          showErrorModal("주문 실패: " + err.message);
       }
+      
+      
     } catch (err) {
-      alert("네트워크 오류: " + err.message);
+      showErrorModal("네트워크 오류: " + err.message);
     }
+    
+    
+    
   }
 </script>
 </body>

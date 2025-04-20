@@ -1,18 +1,32 @@
 const AWS = require("aws-sdk");
 const { v4: uuidv4 } = require("uuid");
 
-const dynamoDb = new AWS.DynamoDB.DocumentClient();
+const dynamoDb = new AWS.DynamoDB.DocumentClient({ region: 'ap-northeast-2' });
 const EVENTS_TABLE = "EventsTable";
 const EVENT_ITEMS_TABLE = "EventItemsTable";
 const PRODUCTS_TABLE = "ProductsTable";
 
+const generateEventKey = () => {
+    return Math.random().toString(36).substring(2, 10); // 예: 'a9d2zB7q'
+};
 /**
  * 이벤트 등록 API
  * POST /events
  */
 exports.handler = async (event) => {
-    const data = JSON.parse(event.body);
+
+    console.log("check type" , typeof event.body)
     const eventId = uuidv4();
+    const eventKey = generateEventKey();
+
+    let data;
+    if(typeof event.body === "object") {
+        data = event.body;
+    }
+    else {
+        data = JSON.parse(event.body);
+    }
+
 
     // 1️⃣ ProductsTable에서 상품 정보 조회
     const productIds = data.products.map(product => product.productId);
@@ -58,7 +72,10 @@ exports.handler = async (event) => {
     // 3️⃣ `eventsFullManage` JSON 생성
     const fullEventData = {
         eventId,
+        eventKey,
         sellerId: data.sellerId,
+        payAccount: data.payAccount,
+        payAccountOwner: data.payAccountOwner,
         title: data.title,
         description: data.description,
         startTime: data.startTime,
@@ -79,6 +96,7 @@ exports.handler = async (event) => {
         TableName: EVENTS_TABLE,
         Item: {
             eventId,
+            eventKey,
             eventsFullManage: fullEventData
         }
     };

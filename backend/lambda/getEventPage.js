@@ -374,10 +374,11 @@ exports.handler = async (event) => {
       if (res.ok) {
           const data = await res.json();
           const orderNo = data.orderNo;
+          const orderId = data.orderId;
     
           // 주문번호 표시
           document.getElementById("completedOrderNo").innerText = orderNo;
-          document.getElementById("viewOrderLink").href = \`/viewOrder/\${orderNo}\`;
+          document.getElementById("viewOrderLink").href = \`/viewOrder/\${orderNo}/\${orderId}\`;
     
           // 주문 완료 모달 표시
           document.getElementById("orderLayer").innerHTML="";

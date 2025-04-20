@@ -199,7 +199,7 @@ exports.handler = async (event) => {
                   <div class="modal-body text-center">
                     <p class="mb-2">주문이 성공적으로 접수되었습니다!</p>
                     <p>주문번호: <strong id="completedOrderNo"></strong></p>
-                    <a id="viewOrderLink" class="btn btn-outline-success mt-2" target="_blank">주문 내역 확인</a>
+                    <a id="viewOrderLink" class="btn btn-outline-success mt-2">주문 내역 확인</a>
                   </div>
                 </div>
               </div>

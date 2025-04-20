@@ -26,7 +26,7 @@ app.get('/viewOrder/:orderNo/:orderId', async (req, res) =>  {
     const { orderNo, orderId } = req.params;
     let event = {
         pathParameters:{
-            order_no: orderNo,
+            event_no: orderNo,
             order_id: orderId,
         }
     }

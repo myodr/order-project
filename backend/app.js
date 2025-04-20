@@ -11,7 +11,7 @@ const createEvent = require("./lambda/createEvent");
 app.use(express.json());
 
 // 기본 라우터
-app.get('/get-event-page/:id', async (req, res) =>  {
+app.get('/getEventPage/:id', async (req, res) =>  {
     let event = {
         pathParameters:{
             event_key: req.params.id
@@ -21,22 +21,34 @@ app.get('/get-event-page/:id', async (req, res) =>  {
     res.send(resp.body);
 });
 
-app.get('/view-order/:orderNo', async (req, res) =>  {
+
+app.get('/viewOrder/:orderNo/:orderId', async (req, res) =>  {
+    const { orderNo, orderId } = req.params;
     let event = {
         pathParameters:{
-            order_no: req.params.orderNo
+            order_no: orderNo,
+            order_id: orderId,
         }
     }
     let resp = await viewOrder.handler(event);
     res.send(resp.body);
 });
 
-app.get('/', (req, res) => {
-    res.send('Hello from internet!');
+
+app.get('/viewOrder/:orderNo', async (req, res) =>  {
+    const { orderNo, orderId = "noInput" } = req.params;
+    let event = {
+        pathParameters:{
+            order_no: orderNo,
+            order_id: orderId,
+        }
+    }
+    let resp = await viewOrder.handler(event);
+    res.send(resp.body);
 });
 
 // 예시: POST 요청 처리
-app.post('/create-order', async(req, res) => {
+app.post('/createOrder', async(req, res) => {
     const data = req.body;
     console.log('Received data:', data);
     let event = {
@@ -60,6 +72,20 @@ app.post('/create-event', async(req, res) => {
     res.status(resp.statusCode).send(resp.body);
 });
 
+
+app.get('/:id', async (req, res) =>  {
+    let event = {
+        pathParameters:{
+            event_key: req.params.id
+        }
+    }
+    let resp = await getEventPage.handler(event);
+    res.send(resp.body);
+});
+
+app.get('/', (req, res) => {
+    res.send('Hello from internet!');
+});
 
 // 예시: POST 요청 처리
 app.post('/api/data', (req, res) => {

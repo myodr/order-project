@@ -158,8 +158,7 @@ exports.handler = async (event) => {
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="confirmModalLabel"><i class="bi bi-cart-check-fill"></i> 주문 확인</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <h5 class="modal-title" id="confirmModalLabel"><i class="bi bi-cart-check-fill"></i> 주문 확인</h5>                            
                         </div>
                         <div class="modal-body">
                             <p id="confirmText">주문 내용을 확인하세요.</p>
@@ -195,8 +194,7 @@ exports.handler = async (event) => {
               <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                   <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title">주문 완료</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title">주문 완료</h5>                    
                   </div>
                   <div class="modal-body text-center">
                     <p class="mb-2">주문이 성공적으로 접수되었습니다!</p>
@@ -367,7 +365,7 @@ exports.handler = async (event) => {
     };
 
     try {
-      const res = await fetch("/create-order", {
+      const res = await fetch("/createOrder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)

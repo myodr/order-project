@@ -49,12 +49,18 @@ functions:
       - http:
           path: getEventPage/{event_key}
           method: get
+      - http:
+          path: /{event_key}
+          method: get
 
   viewOrder:
     handler: viewOrder.handler
     events:
       - http:
-          path: viewOrder/{event_no}
+          path: viewOrder/{order_no}
+          method: get
+      - http:
+          path: viewOrder/{order_no}/{order_id}
           method: get
 
 plugins:

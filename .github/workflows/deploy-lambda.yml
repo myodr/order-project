@@ -27,17 +27,6 @@ jobs:
       - name: Install Serverless Framework
         run: npm install -g serverless@3
 
-      # ✅ 스택 강제 초기화 (dev 전용)
-      - name: Remove existing stack (safe only for dev)
-        working-directory: backend/lambda
-        run: |
-          echo "Removing old stack (if exists)..."
-          serverless remove || echo "No stack to remove"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: "ap-northeast-2"
-
       - name: Deploy to AWS using Serverless
         working-directory: backend/lambda
         run: serverless deploy

@@ -47,14 +47,14 @@ functions:
     handler: getEventPage.handler
     events:
       - http:
-          path: get-event-page/{event_key}
+          path: get-event-page/{event_id}
           method: get
 
   viewOrder:
     handler: viewOrder.handler
     events:
       - http:
-          path: view-order/{order_no}
+          path: view-order/{event_no}
           method: get
 
 plugins:

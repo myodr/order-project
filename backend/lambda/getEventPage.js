@@ -7,7 +7,7 @@ const EVENTS_TABLE = "EventsTable";
 exports.handler = async (event) => {
     const eventKey = event.pathParameters.event_key;
 
-    console.log("chk eventKey", eventKey)
+    // console.log("chk eventKey", eventKey)
 
     const now = new Date().toISOString();
 // `eventsFullManage`를 포함한 전체 이벤트 정보 조회

@@ -176,10 +176,17 @@ exports.handler = async (event) => {
 
         <div class="section">
           <h5><i class="bi bi-cash-coin"></i> 결제 금액</h5>
-          <p><strong>총 결제금액:</strong> ₩${(order.totalAmount || 0).toLocaleString()}원</p>
+          <p><strong>총 결제금액:</strong> ${(order.totalAmount || 0).toLocaleString()}원</p>
           <p><strong>입금은행:</strong> ${order.payAccount} / ${order.payAccountOwner} </p>
           <p><strong>입금자명:</strong> ${order.payname || "(미입력)"}</p>
           <p><strong>입금 확인:</strong> ${order.isPaid ? '<span class="text-success">완료</span>' : '<span class="text-danger">미확인</span>'}</p>
+          
+          <p><strong>배송 상태:</strong>
+            <span class="badge ${order.isShipped ? 'bg-info text-dark' : 'bg-warning text-dark'}">
+              ${order.isShipped ? '발송 완료' : '발송 대기'}
+            </span>
+          </p>
+            ${order.trackingNo ? `<p><strong>송장번호:</strong> ${order.trackingNo}</p>` : ''}
         </div>
 
         <div class="text-center mt-5 text-secondary">

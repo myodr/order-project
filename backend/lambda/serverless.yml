@@ -63,5 +63,24 @@ functions:
           path: viewOrder/{event_no}/{order_id}
           method: get
 
+  adminOrderStatus:
+    handler: adminOrderStatus.handler
+    events:
+      - http:
+          path: admin/orders
+          method: get
+          request:
+            parameters:
+              querystrings:
+                eventId: true
+                scrollTo: false
+
+  updateOrderStatus:
+    handler: updateOrderStatus.handler
+    events:
+      - http:
+          path: admin/updateOrder
+          method: post
+
 plugins:
   - serverless-offline  # 로컬 테스트용 플러그인 (선택)

@@ -7,6 +7,12 @@ const getEventPage = require('./lambda/getEventPage');
 const createOrder = require("./lambda/createOrder");
 const viewOrder = require("./lambda/viewOrder");
 const createEvent = require("./lambda/createEvent");
+const adminOrderStatus = require("./lambda/adminOrderStatus");
+const updateOrderStatus = require("./lambda/updateOrderStatus");
+
+// URL-encoded form 파싱 (필수!)
+app.use(express.urlencoded({ extended: true }));
+
 // 미들웨어: JSON 바디 파싱
 app.use(express.json());
 
@@ -70,6 +76,42 @@ app.post('/create-event', async(req, res) => {
     let resp = await createEvent.handler(event);
     console.log(resp.statusCode);
     res.status(resp.statusCode).send(resp.body);
+});
+
+
+app.get('/admin/orders', async (req, res) =>  {
+
+    const {eventId, scrollTo} = req.query;
+    console.log("eventId", eventId);
+    let event = {
+        queryStringParameters:{
+            eventId,
+            scrollTo
+        }
+    }
+    console.log("event", event);
+    let resp = await adminOrderStatus.handler(event);
+    res.send(resp.body);
+});
+
+app.post('/admin/updateOrder', async(req, res) => {
+    const data = new URLSearchParams(req.body);
+    console.log('/admin/updateOrder Received data:', data);
+    let event = {
+        body:req.body
+    };
+    let resp = await updateOrderStatus.handler(event);
+
+    console.log("check resp", resp);
+
+    // res.status(resp.statusCode).send(resp.body);
+    // 🔁 302 Redirect 처리
+    if (resp.statusCode === 302 && resp.headers?.Location) {
+        return res.redirect(resp.headers.Location); // 실제 리다이렉션
+    }
+
+    // 일반 응답 처리
+    res.status(resp.statusCode || 200).send(resp.body);
 });
 
 

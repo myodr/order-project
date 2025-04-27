@@ -2,13 +2,17 @@ const express = require('express');
 const app = express();
 const port = 3000;
 
+const getRawBody = require('raw-body'); // 추가 필요
+
 // const {getEvent}  = require('lambda/getEvent');
 const getEventPage = require('./lambda/getEventPage');
 const createOrder = require("./lambda/createOrder");
 const viewOrder = require("./lambda/viewOrder");
-const createEvent = require("./lambda/createEvent");
 const adminOrderStatus = require("./lambda/adminOrderStatus");
 const updateOrderStatus = require("./lambda/updateOrderStatus");
+
+const createEventPage = require("./lambda/createEventPage");
+const createEvent = require("./lambda/createEvent");
 
 // URL-encoded form 파싱 (필수!)
 app.use(express.urlencoded({ extended: true }));
@@ -66,6 +70,8 @@ app.post('/createOrder', async(req, res) => {
 });
 
 
+
+
 // 예시: POST 요청 처리
 app.post('/create-event', async(req, res) => {
     const data = req.body;
@@ -78,6 +84,14 @@ app.post('/create-event', async(req, res) => {
     res.status(resp.statusCode).send(resp.body);
 });
 
+app.get('/admin/createEventPage' , async (req, res) =>{
+    const {sellerId} = req.query;
+    let event = {
+        queryStringParameters: {sellerId}
+    }
+    let resp = await createEventPage.handler(event);
+    res.send (resp.body);
+});
 
 app.get('/admin/orders', async (req, res) =>  {
 
@@ -114,6 +128,30 @@ app.post('/admin/updateOrder', async(req, res) => {
     res.status(resp.statusCode || 200).send(resp.body);
 });
 
+app.post('/admin/createEvent', async (req,res) =>{
+
+    // 1️⃣ req.body를 직접 쓰지 않고, raw body를 수집
+    const rawBodyBuffer = await getRawBody(req);
+
+    // 2️⃣ Lambda event 형식으로 변환
+    const event = {
+        headers: req.headers,
+        httpMethod: req.method,
+        path: req.path,
+        isBase64Encoded: false,
+        body: rawBodyBuffer.toString() // form-data는 string으로 넘겨야 Busboy가 파싱 가능
+    };
+
+    let resp = await createEvent.handler(event);
+
+    // 🔁 302 Redirect 처리
+    if (resp.statusCode === 302 && resp.headers?.Location) {
+        return res.redirect(resp.headers.Location); // 실제 리다이렉션
+    }
+
+    // 일반 응답 처리
+    res.status(resp.statusCode || 200).send(resp.body);
+})
 
 app.get('/:id', async (req, res) =>  {
     let event = {

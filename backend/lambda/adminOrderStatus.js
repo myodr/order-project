@@ -87,7 +87,7 @@ exports.handler = async (event) => {
           
           <p class="mb-1"><strong>상품 내역:</strong></p>
           <ul class="mb-2">
-            ${order.orderItems.map(item => `<li>${item.name} (${item.quantity})</li>`).join("")}
+            ${order.orderItems.map(item => `<li>${item.productName} (${item.quantity})</li>`).join("")}
           </ul>
 
           <p class="mb-1"><strong>총 금액:</strong> ₩${order.totalAmount.toLocaleString()}</p>
@@ -192,7 +192,7 @@ exports.handler = async (event) => {
     itemList.innerHTML = "";
     order.orderItems.forEach(item => {
       const li = document.createElement("li");
-      li.textContent = \`\${item.name || item.productId} - \${item.quantity}개\`;
+      li.textContent = \`\${item.productName || item.productId} - \${item.quantity}개\`;
       itemList.appendChild(li);
     });
 

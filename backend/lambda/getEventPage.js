@@ -51,7 +51,7 @@ exports.handler = async (event) => {
             <meta property="og:title" content="${eventInfo.title}" />
             <meta property="og:description" content="${eventInfo.description}" />
             <meta property="og:image" content="${items?.[0]?.imageUrl || 'https://via.placeholder.com/600x400?text=No+Image'}" />
-            <meta property="og:image:alt" content="${items?.[0]?.name || eventInfo.title }" />
+            <meta property="og:image:alt" content="${items?.[0]?.productName || eventInfo.title }" />
             <meta property="og:url" content="https://www.myodr.store/get-event-page/${eventInfo.eventKey}" />
             <title>myOrder-${eventInfo.title}</title>
             <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -100,9 +100,9 @@ exports.handler = async (event) => {
                     ${items.map(item => `
                         <div class="product border rounded-1 p-2">
                             <div class="d-flex align-items-center">
-                                <img src="${item.imageUrl}" alt="${item.name}" class="me-3 rounded-1 toggle-details">
+                                <img src="${item.imageUrl}" alt="${item.productName}" class="me-3 rounded-1 toggle-details">
                                 <div>
-                                    <strong class="toggle-details">${item.name}</strong>
+                                    <strong class="toggle-details">${item.productName}</strong>
                                     <p class="mb-1 text-muted">₩${item.eventPrice}</p>
                                     ${item.stock === 0 ? `<p class="sold-out">품절</p>` : ''}
                                 </div>
@@ -274,9 +274,9 @@ exports.handler = async (event) => {
         document.querySelectorAll(".quantity").forEach(input => {
             const quantity = parseInt(input.value) || 0;
             const price = parseInt(input.dataset.price) || 0;
-            const name = input.closest(".product").querySelector("strong").innerText;
+            const productName = input.closest(".product").querySelector("strong").innerText;
                 if (quantity > 0) {
-                    items.push({ name, quantity, price });
+                    items.push({ productName, quantity, price });
                     total += quantity * price;
                 }
         });
@@ -315,7 +315,7 @@ exports.handler = async (event) => {
         // 주문 요약 HTML 생성
         let html = \`<h6>주문 요약</h6><ul>\`;
         items.forEach(item => {
-            html += \`<li>\${item.name} x \${item.quantity}개 - \${(item.quantity * item.price).toLocaleString()}원</li>\`;
+            html += \`<li>\${item.productName} x \${item.quantity}개 - \${(item.quantity * item.price).toLocaleString()}원</li>\`;
         });
         html += \`</ul><p><strong>총 금액:</strong> \${total.toLocaleString()}원</p>\`;
         html += \`<hr><p><strong>수령인:</strong> \${buyerName}</p><p><strong>연락처:</strong> \${phone}</p><p><strong>주소:</strong> [\${postcode}] \${address} \${addressEtc}</p>\`;
@@ -343,10 +343,10 @@ exports.handler = async (event) => {
       const quantity = parseInt(input.value) || 0;
       const price = parseInt(input.dataset.price) || 0;
       const productId = input.dataset.product;
-      const name = input.closest(".product").querySelector("strong").innerText;
+      const productName = input.closest(".product").querySelector("strong").innerText;
 
       if (quantity > 0) {
-        items.push({ productId, quantity, name, price, amount: (quantity * price) });
+        items.push({ productId, quantity, productName, price, amount: (quantity * price) });
         totalAmount += quantity * price;
       }
     });

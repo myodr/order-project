@@ -165,7 +165,7 @@ exports.handler = async (event) => {
             <tbody>
               ${order.orderItems.map(item => `
                 <tr>
-                  <td>${item.name}</td>
+                  <td>${item.productName}</td>
                   <td class="text-end">${item.quantity}개</td>
                   <td class="text-end">${item.amount || '-' }원</td>
                 </tr>

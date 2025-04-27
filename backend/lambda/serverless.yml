@@ -19,7 +19,7 @@ functions:
     handler: createEvent.handler
     events:
       - http:
-          path: createEvent
+          path: admin/createEvent
           method: post
 
   createOrder:
@@ -81,6 +81,14 @@ functions:
       - http:
           path: admin/updateOrder
           method: post
+
+
+  createEventPage:
+    handler: createEventPage.handler
+    events:
+      - http:
+          path: admin/createEvent
+          method: get
 
 plugins:
   - serverless-offline  # 로컬 테스트용 플러그인 (선택)

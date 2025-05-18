@@ -5,6 +5,7 @@ const PRODUCTS_TABLE = "ProductsTable";
 
 exports.handler = async (event) => {
     const sellerId = event.queryStringParameters?.sellerId;
+    const token = event.queryStringParameters?.token;
 
     if (!sellerId) {
         return {
@@ -48,6 +49,9 @@ exports.handler = async (event) => {
 <h3 class="mb-4">상품 주문</h3>
 
 <form id="eventForm" enctype="multipart/form-data" method="POST" action="/admin/createEvent">
+<input type="hidden" name="sellerId" value="${sellerId}">
+<input type="hidden" name="token" value="${token}">
+        
   <div class="mb-3">
     <label class="form-label">이벤트 제목</label>
     <input type="text" name="title" class="form-control" required />
@@ -102,7 +106,7 @@ exports.handler = async (event) => {
   </div>
 
   <div class="d-grid">
-    <button type="submit" class="btn btn-primary">주문 생성</button>
+    <button type="button" class="btn btn-primary" onclick="showConfirmModal()">주문 생성</button>
   </div>
 </form>
 <!-- 📦 중복선택 경고 모달 -->
@@ -123,10 +127,30 @@ exports.handler = async (event) => {
   </div>
 </div>
 
+<!-- ✅ 이벤트 생성 확인 모달 -->
+<div class="modal fade" id="confirmSubmitModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">이벤트 생성 확인</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <p>이벤트를 생성하시겠습니까?</p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+        <button type="button" class="btn btn-primary" onclick="submitForm()">확인</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const products = ${productsJson};  // 🔥 DynamoDB 상품 목록 주입
 let productCount = 0;
 
+console.log("products", products);
 function addProduct() {
   if (productCount >= 10) {
     alert("최대 10개의 상품만 추가할 수 있습니다.");
@@ -137,10 +161,11 @@ function addProduct() {
 
   const productOptions = products.map(p => 
   \`<option value="\${p.productId}" 
-           data-name="\${p.name}" 
+           data-name="\${p.productName}"
+           data-descr="\${p.description}" 
            data-price="\${p.basePrice}" 
            data-thumbnail="\${p.imageUrl || ''}">
-    \${p.name}
+    \${p.productName}
   </option>\`
 ).join('');
 
@@ -152,7 +177,7 @@ function addProduct() {
 
       <div class="mb-2">
         <label class="form-label">상품 선택</label>
-        <select name="productSelect\${productCount}" class="form-select" onchange="toggleProductInput(this, \${productCount})">
+        <select data-idxnum="\${productCount}" name="productSelect\${productCount}" class="form-select" onchange="toggleProductInput(this, \${productCount})">
           <option value="">[신규 등록]</option>
           \${productOptions}
         </select>
@@ -168,7 +193,14 @@ function addProduct() {
           <label class="form-label">상품명</label>
           <input type="text" name="productName\${productCount}" class="form-control" />
         </div>
+        
+        <div class="mb-2">
+          <label class="form-label">상품 상세설명</label>
+          <input type="text" name="description\${productCount}" class="form-control" />
+        </div>
+
       </div>
+
 
       <div class="mb-2">
         <label class="form-label">단가 (₩)</label>
@@ -204,7 +236,8 @@ function isDuplicateSelection(selectedValue, currentIdx) {
   let selectedValues = [];
 
   selects.forEach((sel, idx) => {
-    if (idx !== currentIdx && sel.value) {
+    console.log("check duplication", selectedValue, currentIdx,  sel.value, idx, parseInt(sel.dataset.idxnum));
+    if (parseInt(sel.dataset.idxnum) !== currentIdx && sel.value) {
       selectedValues.push(sel.value);
     }
   });
@@ -217,6 +250,7 @@ function toggleProductInput(select, idx) {
   const newArea = document.getElementById(\`newProductArea\${idx}\`);
   const unitPriceInput = document.querySelector(\`input[name = "unitPrice\${idx}"]\`);
   const productNameInput = document.querySelector(\`input[name = "productName\${idx}"]\`);
+  const descriptionInput = document.querySelector(\`input[name = "description\${idx}"]\`);
   const thumbnailInput = document.querySelector(\`input[name = "thumbnail\${idx}"]\`);
   const selectedOption = select.options[select.selectedIndex];
   
@@ -232,6 +266,7 @@ function toggleProductInput(select, idx) {
 
     if (newArea) newArea.style.display = "block";
     if (productNameInput) productNameInput.value = "";
+    if (descriptionInput) descriptionInput.value = "";
     if (unitPriceInput) unitPriceInput.value = "";
     if (thumbnailInput) thumbnailInput.disabled = false;
 
@@ -241,6 +276,7 @@ function toggleProductInput(select, idx) {
   if (select.value) {
     // 기존 상품 선택
     productNameInput.value = selectedOption.dataset.name;
+    descriptionInput.value = selectedOption.dataset.descr;
     unitPriceInput.value = selectedOption.dataset.price;
     thumbnailInput.disabled = true;
     newArea.style.display = "none";
@@ -258,6 +294,7 @@ function toggleProductInput(select, idx) {
   } else {
     // 신규 등록
     productNameInput.value = "";
+    descriptionInput.value = "";
     unitPriceInput.value = "";
     thumbnailInput.disabled = false;
     newArea.style.display = "block";
@@ -269,6 +306,15 @@ function deleteProduct(idx) {
   if (entry) {
     entry.remove();
   }
+}
+
+function showConfirmModal() {
+  const modal = new bootstrap.Modal(document.getElementById("confirmSubmitModal"));
+  modal.show();
+}
+
+function submitForm() {
+  document.getElementById("eventForm").submit();
 }
 </script>
 

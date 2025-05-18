@@ -41,7 +41,6 @@ exports.handler = async (event) => {
     }
 
 
-
     const orderId = uuidv4();
     const now = new Date().toISOString();
     const seq = await getOrderSeq();
@@ -60,6 +59,8 @@ exports.handler = async (event) => {
         totalAmount
     } = data;
 
+    console.log("chk v2", eventId, items);
+
     const order = {
         orderId,
         orderNo,
@@ -77,6 +78,8 @@ exports.handler = async (event) => {
         orderTime: now,
         status: "PENDING"
     };
+
+    console.log("chk 3", order);
 
     const stockUpdateItems = items.flatMap(item => [
         {

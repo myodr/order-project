@@ -52,16 +52,15 @@
 
 ---
 
-~~## 3. EventItemsTable~~ **_[event별 판매상품은 events의 items 로 편입]_**
+## 3. EventItemsTable **_
+[event별 판매상품은 events의 items 로 편입되어 있으나 재고관리를 위해 내부적으로 활용]_**
 
-| **Attribute**     | **Type** | **Description**                                |
-|-------------------|----------|------------------------------------------------|
-| ~~`eventId`~~     | String   | **(PK)** 이벤트 고유 ID                        |
-| ~~`productId`~~   | String   | **(SK)** 상품 고유 ID                          |
-| ~~`eventPrice`~~  | Number   | 이벤트에서 적용되는 가격                       |
-| ~~`stock`~~       | Number   | 이벤트 단위 재고                               |
-| ~~`description`~~ | String   | (선택) 이벤트 내 상품에 대한 상세 설명         |
-| ~~`imageUrl`~~    | String   | (선택) 이벤트 내 상품 이미지를 별도로 저장 시  |
+| **Attribute** | **Type** | **Description**                                |
+|---------|----------|------------------------------------------------|
+| `eventId` | String   | **(PK)** 이벤트 고유 ID                        |
+| `productId` | String   | **(SK)** 상품 고유 ID                          |
+| `eventPrice` | Number   | 이벤트에서 적용되는 가격                       |
+| `stock` | Number   | 이벤트 단위 재고                               |
 
 - **Primary Key**: `(eventId, productId)`
     - `eventId`: Partition Key
@@ -72,31 +71,31 @@
 
 ## 4. OrdersTable
 
-| **Attribute**     | **Type** | **Description**                         |
-|-------------------|----------|-----------------------------------------|
-| `orderId`         | String   | **(PK)** 주문 고유 ID                       |
-| `eventId`         | String   | 주문이 발생한 이벤트 ID                          |
-| `buyerId`         | String   | 구매자 ID (GSI용)                           |
-| `orderItems`      | List     | 주문 상품 목록                                |
-| `.productId`      | String   | \> productId                            |
-| `.name`           | String   | \> 제품명                                  |
-| `.price`          | String   | \> 단가                                   |
-| `.quantity`       | String   | \> 수량                                   |
-| `.amount`         | String   | \> 금액                                   |
-| `totalAmount`     | Number   | 총 주문 금액                                 |
-| `orderTime`       | String   | 주문 시간 (ISO 8601)                        |
-| `orderNo`         | String   | 주문 확인용 거래번호                             |
-| `status`          | String   | `PENDING`, `CONFIRMED`, `DISPATCHED`, 등 |
-| `buyerName`       | String   | 구매자(수령인) 이름                             |
-| `phone`           | String   | 구매자(수령인) 연락처                            |
-| `postcode`        | String   | 우편번호                                    |
-| `addressEtc`      | String   | 상세 주소                                   |
-| `address`         | String   | 표시용 전체 주소                               |
-| `isPaid`          | Boolean  | 입금확인여부                                  |
-| `isShipped`       | Boolean  | 택배발송여부                                  |
-| `trackingNo`      | String   | 택배송장번호                                  |
-| `payname`         | Boolean  | 입금자명                                    |
-| `payAccount`      | String   | 입금은행계좌번호 (event 상속)                     |
+| **Attribute**    | **Type** | **Description**                         |
+|------------------|----------|-----------------------------------------|
+| `orderId`        | String   | **(PK)** 주문 고유 ID                       |
+| `eventId`        | String   | 주문이 발생한 이벤트 ID                          |
+| `buyerId`        | String   | 구매자 ID (GSI용)                           |
+| `orderItems`     | List     | 주문 상품 목록                                |
+| `.productId`     | String   | \> productId                            |
+| `.productName`   | String   | \> 제품명                                  |
+| `.price`         | String   | \> 단가                                   |
+| `.quantity`      | String   | \> 수량                                   |
+| `.amount`        | String   | \> 금액                                   |
+| `totalAmount`    | Number   | 총 주문 금액                                 |
+| `orderTime`      | String   | 주문 시간 (ISO 8601)                        |
+| `orderNo`        | String   | 주문 확인용 거래번호                             |
+| `status`         | String   | `PENDING`, `CONFIRMED`, `DISPATCHED`, 등 |
+| `buyerName`      | String   | 구매자(수령인) 이름                             |
+| `phone`          | String   | 구매자(수령인) 연락처                            |
+| `postcode`       | String   | 우편번호                                    |
+| `addressEtc`     | String   | 상세 주소                                   |
+| `address`        | String   | 표시용 전체 주소                               |
+| `isPaid`         | Boolean  | 입금확인여부                                  |
+| `isShipped`      | Boolean  | 택배발송여부                                  |
+| `trackingNo`     | String   | 택배송장번호                                  |
+| `payname`        | Boolean  | 입금자명                                    |
+| `payAccount`     | String   | 입금은행계좌번호 (event 상속)                     |
 | `payAccountOwner` | String   | 예금주 (event 상속)                          |
 
 - **Primary Key**: `orderId`

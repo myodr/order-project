@@ -84,6 +84,10 @@ exports.handler = async (event) => {
     const items = [];
     const productsToInsert = [];
 
+    // TODO:: token 검증
+    const token = fields.token;
+    const sellerId = fields.sellerId;
+
     for (let i = 0; i < 10; i++) {
         console.log("item check", i, `unitPrice${i}`);
         if (fields[`unitPrice${i}`] && fields[`stock${i}`]) {
@@ -93,16 +97,19 @@ exports.handler = async (event) => {
             let productId;
             let productName;
             let imageUrl;
+            let description;
 
             if (productSelect) {
                 // 기존 상품 선택
                 productId = productSelect;
                 productName = fields[`productName${i}`];
                 imageUrl = fields[`thumbnailUrl${i}`] || "";
+                description = fields[`description${i}`];
             } else {
                 // 신규 상품 등록
                 productId = uuidv4();
                 productName = fields[`productName${i}`];
+                description = fields[`description${i}`];
                 const thumbKey = files[`thumbnail${i}`]?.key;
                 imageUrl = thumbKey ? URL_PREFIX + thumbKey : "";
 
@@ -111,6 +118,7 @@ exports.handler = async (event) => {
                         Item: {
                             productId,
                             productName,
+                            description,
                             basePrice: unitPrice,
                             stock,
                             createdAt: new Date().toISOString()
@@ -122,6 +130,7 @@ exports.handler = async (event) => {
             items.push({
                 productId,
                 productName,
+                description,
                 eventPrice: unitPrice,
                 stock,
                 imageUrl
@@ -143,6 +152,7 @@ exports.handler = async (event) => {
     const eventItem = {
         eventId,
         eventKey,
+        sellerId,
         eventsFullManage: {
             eventId,
             title: fields.title,
@@ -156,6 +166,27 @@ exports.handler = async (event) => {
         }
     };
 
+    // ✅ EventItemsTable 저장
+    const eventItemsToInsert = items.map(item => ({
+        PutRequest: {
+            Item: {
+                eventId,
+                productId: item.productId,
+                eventPrice: item.eventPrice,
+                stock: item.stock
+            }
+        }
+    }));
+
+    if (eventItemsToInsert.length > 0) {
+        await dynamoDb.batchWrite({
+            RequestItems: {
+                EventItemsTable: eventItemsToInsert
+            }
+        }).promise();
+    }
+
+
     await dynamoDb.put({
         TableName: EVENTS_TABLE,
         Item: eventItem
@@ -164,7 +195,7 @@ exports.handler = async (event) => {
     return {
         statusCode: 302,
         headers: {
-            Location: `/admin/orders?eventId=${eventId}`
+            Location: `/admin/orders?eventId=${eventId}&sellerId=${sellerId}&token=${token}`
         }
     };
 };

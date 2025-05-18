@@ -95,12 +95,14 @@ app.get('/admin/createEventPage' , async (req, res) =>{
 
 app.get('/admin/orders', async (req, res) =>  {
 
-    const {eventId, scrollTo} = req.query;
-    console.log("eventId", eventId);
+    const {eventId, scrollTo,sellerId, token} = req.query;
+    console.log("eventId", eventId, "sellerId", sellerId);
     let event = {
         queryStringParameters:{
             eventId,
-            scrollTo
+            scrollTo,
+            sellerId,
+            token
         }
     }
     console.log("event", event);

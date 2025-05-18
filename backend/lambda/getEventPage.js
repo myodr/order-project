@@ -108,7 +108,7 @@ exports.handler = async (event) => {
                                 </div>
                             </div>
                             <div class="product-details mt-2">
-                                <p>${item.description}</p>
+                                <p>${item.productDesc}</p>
                             </div>
                             <div class="quantity-controls">
                                 ${item.stock > 0 ? `

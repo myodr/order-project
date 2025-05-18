@@ -2,20 +2,41 @@ const AWS = require("aws-sdk");
 const dynamoDb = new AWS.DynamoDB.DocumentClient({ region: "ap-northeast-2" });
 
 const ORDERS_TABLE = "OrdersTable";
+const EVENTS_TABLE = "EventsTable";
 
 exports.handler = async (event) => {
     const eventId = event.queryStringParameters?.eventId;
     const scrollToOrderId = event.queryStringParameters?.scrollTo;
+    const sellerId = event.queryStringParameters?.sellerId;
+    const token = event.queryStringParameters?.token;
 
-    if (!eventId) {
+    //TODO:: sellerId, token을 통한 검증
+
+
+
+    if (!eventId||!sellerId) {
         return {
             statusCode: 400,
             headers: { "Content-Type": "text/html" },
-            body: `<h3>eventId가 누락되었습니다.</h3>`
+            body: `<h3>비정상 접근입니다.!! 정상경로를 통해 접속 해 주세요</h3>`
         };
     }
 
+
+
+
     try {
+
+        // 추가: EventsTable 조회
+        const eventResult = await dynamoDb.get({
+            TableName: "EventsTable",
+            Key: { eventId }
+        }).promise();
+
+        console.log("check event", eventResult.Item.eventsFullManage);
+
+        const eventInfo = eventResult.Item.eventsFullManage;
+
         const result = await dynamoDb.query({
             TableName: ORDERS_TABLE,
             IndexName: "eventId-index", // 🔸 GSI 필요
@@ -26,6 +47,42 @@ exports.handler = async (event) => {
         }).promise();
 
         const orders = result.Items || [];
+
+        const totalOrders = orders.length;
+        const totalAmount = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+
+        // 상품별 요약 Map 생성
+        const productSummaryMap = new Map();
+
+        orders.forEach(order => {
+            (order.orderItems || []).forEach(item => {
+                const key = item.productId;
+                if (!productSummaryMap.has(key)) {
+                    productSummaryMap.set(key, {
+                        productName: item.productName || key,
+                        quantity: 0,
+                        amount: 0
+                    });
+                }
+                const summary = productSummaryMap.get(key);
+                summary.quantity += item.quantity;
+                summary.amount += item.amount; //(item.quantity * (item.price || 0));
+            });
+        });
+
+        const productSummaryCards = [...productSummaryMap.values()].map(p => `
+  <div class="card shadow-sm mb-2">
+    <div class="card-body py-2 px-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <strong>${p.productName}</strong>
+        <small class="text-muted">₩${p.amount.toLocaleString()}</small>
+      </div>
+      <div class="text-muted mt-1">
+        총 수량: ${p.quantity.toLocaleString()}개
+      </div>
+    </div>
+  </div>
+`).join('');
 
         const html = `
       <!DOCTYPE html>
@@ -78,6 +135,32 @@ exports.handler = async (event) => {
 <body>
   <h3 class="text-center mb-4">주문현황</h3>
 
+<div class="card mb-4">
+  <div class="card-body d-flex justify-content-between align-items-center">
+    <span class="me-1 text-truncate" style="max-width: 85%;">
+      <code id="eventLink">https://www.myodr.store/${eventResult.Item.eventKey}</code>
+    </span>
+    <button class="btn btn-outline-secondary btn-sm" onclick="copyEventLink()">복사</button>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">${eventInfo.title}</h5>        
+    <p class="mb-1"><strong>이벤트 기간:</strong> ${eventInfo.startTime} ~ ${eventInfo.endTime}</p>
+    <p class="mb-1"><strong>입금 계좌:</strong> ${eventInfo.payAccount + ' - ' + eventInfo.payAccountOwner || "-"} </p>
+    <p class="mb-1"><strong>총 주문 건수:</strong> ${totalOrders}건</p>
+    <p class="mb-1"><strong>총 주문 금액:</strong> ₩${totalAmount.toLocaleString()}</p>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <h6 class="card-title">상품별 주문 요약</h6>
+    ${productSummaryCards}
+  </div>
+</div>
+
  <div class="d-flex flex-column gap-3">
     ${orders.map(order => `
       <div class="card shadow-sm border-0" id="order-${order.orderId}">
@@ -111,10 +194,10 @@ exports.handler = async (event) => {
         </div>
       </div>
     `).join('')}
-  </div>
+ </div>
         
         <!-- 📦 주문 처리 모달 -->
-    <div class="modal fade" id="orderActionModal" tabindex="-1" aria-hidden="true">
+ <div class="modal fade" id="orderActionModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content">
       <form id="orderActionForm">
@@ -258,6 +341,48 @@ exports.handler = async (event) => {
       }
     );
   }
+  
+  function copyEventLink() {
+  const textToCopy = document.getElementById("eventLink").innerText;
+
+  // 최신 브라우저 지원 (권장)
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      showCopySuccess();
+    }).catch(err => {
+      fallbackCopy(textToCopy);
+    });
+  } else {
+    fallbackCopy(textToCopy);
+  }
+}
+
+// 예전 브라우저 대응 (input 사용)
+function fallbackCopy(text) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand("copy");
+    showCopySuccess();
+  } catch (err) {
+    alert("복사에 실패했습니다. 수동으로 복사해주세요.");
+  }
+  document.body.removeChild(textarea);
+}
+
+// ✅ 복사 완료 시 피드백 (선택)
+function showCopySuccess() {
+  if (window.matchMedia("(max-width: 768px)").matches) {
+    alert("링크가 복사되었습니다!");
+  } else {
+    const btn = document.querySelector("button[onclick='copyEventLink()']");
+    const original = btn.innerText;
+    btn.innerText = "✅ 복사됨!";
+    setTimeout(() => btn.innerText = original, 2000);
+  }
+}
 </script>
 
       </html>

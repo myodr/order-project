@@ -9,7 +9,7 @@ const EVENTS_TABLE = "EventsTable";
 const PRODUCTS_TABLE = "ProductsTable";
 const S3_BUCKET = "myodr-bucket";
 const S3_PREFIX = "images/";
-const URL_PREFIX = "https://dk1mmd9frrhx8.cloudfront.net/";
+const URL_PREFIX = "https://myodr.store/";
 
 const generateEventKey = () => {
     return Math.random().toString(36).substring(2, 10); // 예: 'a9d2zB7q'
@@ -22,31 +22,49 @@ exports.handler = async (event) => {
 
     let fileUploadPromises = [];
 
+    busboy.on("field", (fieldname, value) => {
+        fields[fieldname] = value;
+    });
+
     busboy.on("file", (fieldname, file, filename, encoding, mimetype) => {
+
+        console.log(`[파일 업로드 시작] encoding=${encoding}, mimetype=${mimetype}`, filename);
+
         if (!filename) {
             // 파일이 없을 경우: 반드시 스트림 소비
             file.resume();
             return;
         }
 
-        if (fieldname.startsWith("thumbnail")) {
-            const key = `${S3_PREFIX}${uuidv4()}-${filename}`;
-            files[fieldname] = { key, mimetype };
+        const chunks = [];
 
-            const uploadPromise = s3.upload({
-                Bucket: S3_BUCKET,
-                Key: key,
-                Body: file,
-                ContentType: mimetype
-            }).promise();
+        file.on('data', (chunk)=>{
+            chunks.push(chunk);
+        });
 
-            fileUploadPromises.push(uploadPromise);
-        }
+
+        file.on('end', ()=>{
+            if (fieldname.startsWith("thumbnail")) {
+                console.log("filename", filename, fieldname);
+                const key = `${S3_PREFIX}${uuidv4()}-${filename.filename}`;
+                files[fieldname] = { key, mimetype:filename.mimeType };
+                const buffer = Buffer.concat(chunks);
+
+                const uploadPromise = s3.upload({
+                    Bucket: S3_BUCKET,
+                    Key: key,
+                    Body: buffer,
+                    ContentType: filename.mimeType
+                }).promise();
+
+                fileUploadPromises.push(uploadPromise);
+            }
+        })
+
+
+
     });
 
-    busboy.on("field", (fieldname, value) => {
-        fields[fieldname] = value;
-    });
 
     const parsingFinished = new Promise((resolve, reject) => {
         busboy.on("finish", resolve);
@@ -60,6 +78,7 @@ exports.handler = async (event) => {
     const bodyBuffer = event.isBase64Encoded
         ? Buffer.from(event.body, 'base64')
         : Buffer.from(event.body);
+
     busboy.end(bodyBuffer);
 
 
@@ -111,8 +130,10 @@ exports.handler = async (event) => {
                 productName = fields[`productName${i}`];
                 description = fields[`description${i}`];
                 const thumbKey = files[`thumbnail${i}`]?.key;
-                imageUrl = thumbKey ? URL_PREFIX + thumbKey : "";
 
+                console.log("chk", thumbKey);
+                imageUrl = thumbKey ? URL_PREFIX + thumbKey : "";
+                console.log("chk images", thumbKey, imageUrl);
                 productsToInsert.push({
                     PutRequest: {
                         Item: {

@@ -91,6 +91,7 @@ exports.handler = async (event) => {
         <meta charset="UTF-8" />
         <title>주문현황</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico">
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -138,7 +139,7 @@ exports.handler = async (event) => {
 <div class="card mb-4">
   <div class="card-body d-flex justify-content-between align-items-center">
     <span class="me-1 text-truncate" style="max-width: 85%;">
-      <code id="eventLink">https://www.myodr.store/${eventResult.Item.eventKey}</code>
+      <code id="eventLink">https://myodr.store/${eventResult.Item.eventKey}</code>
     </span>
     <button class="btn btn-outline-secondary btn-sm" onclick="copyEventLink()">복사</button>
   </div>

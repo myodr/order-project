@@ -14,6 +14,10 @@ provider:
         - s3:*
         - lambda:InvokeFunction
       Resource: "*"
+  apiGateway:
+    binary:
+      types:
+        - multipart/form-data
 
 functions:
   uploadImage:

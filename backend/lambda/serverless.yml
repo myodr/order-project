@@ -4,6 +4,10 @@ provider:
   name: aws
   runtime: nodejs18.x
   region: ap-northeast-2
+  apiGateway:
+    binary:
+      types:
+        - multipart/form-data
   memorySize: 512
   timeout: 10
   stage: dev
@@ -14,10 +18,6 @@ provider:
         - s3:*
         - lambda:InvokeFunction
       Resource: "*"
-  apiGateway:
-    binary:
-      types:
-        - multipart/form-data
 
 functions:
   uploadImage:

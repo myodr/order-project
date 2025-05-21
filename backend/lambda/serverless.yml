@@ -4,8 +4,9 @@ provider:
   name: aws
   runtime: nodejs18.x
   region: ap-northeast-2
-  memorySize: 128
+  memorySize: 512
   timeout: 10
+  stage: dev
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -15,6 +16,15 @@ provider:
       Resource: "*"
 
 functions:
+  uploadImage:
+    handler: uploadImage.handler
+    layers:
+      - arn:aws:lambda:ap-northeast-2:471112978667:layer:node-sharp:1
+    events:
+      - http:
+          path: admin/uploadImage
+          method: post
+
   createEvent:
     handler: createEvent.handler
     events:

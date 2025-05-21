@@ -13,6 +13,7 @@ const updateOrderStatus = require("./lambda/updateOrderStatus");
 
 const createEventPage = require("./lambda/createEventPage");
 const createEvent = require("./lambda/createEvent");
+const uploadImage = require("./lambda/uploadImage");
 
 // URL-encoded form 파싱 (필수!)
 app.use(express.urlencoded({ extended: true }));
@@ -132,16 +133,11 @@ app.post('/admin/updateOrder', async(req, res) => {
 
 app.post('/admin/createEvent', async (req,res) =>{
 
-    // 1️⃣ req.body를 직접 쓰지 않고, raw body를 수집
-    const rawBodyBuffer = await getRawBody(req);
+    const data = req.body;
 
     // 2️⃣ Lambda event 형식으로 변환
     const event = {
-        headers: req.headers,
-        httpMethod: req.method,
-        path: req.path,
-        isBase64Encoded: false,
-        body: rawBodyBuffer.toString() // form-data는 string으로 넘겨야 Busboy가 파싱 가능
+        body: data
     };
 
     let resp = await createEvent.handler(event);
@@ -154,6 +150,31 @@ app.post('/admin/createEvent', async (req,res) =>{
     // 일반 응답 처리
     res.status(resp.statusCode || 200).send(resp.body);
 })
+
+
+
+app.post('/admin/uploadImage', async (req,res) =>{
+
+    // 1️⃣ req.body를 직접 쓰지 않고, raw body를 수집
+    const rawBodyBuffer = await getRawBody(req);
+
+    // 2️⃣ Lambda event 형식으로 변환
+    const event = {
+        headers: req.headers,
+        httpMethod: req.method,
+        path: req.path,
+        isBase64Encoded: true,
+        body: rawBodyBuffer.toString('base64') // form-data는 string으로 넘겨야 Busboy가 파싱 가능
+    };
+
+    let resp = await uploadImage.handler(event);
+
+    // 일반 응답 처리
+    res.status(resp.statusCode || 200).send(resp.body);
+})
+
+
+
 
 app.get('/:id', async (req, res) =>  {
     let event = {

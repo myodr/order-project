@@ -48,7 +48,7 @@ exports.handler = async (event) => {
 
 <h3 class="mb-4">상품 주문</h3>
 
-<form id="eventForm" enctype="multipart/form-data" method="POST" action="/admin/createEvent">
+<form id="eventForm" method="POST" action="/admin/createEvent">
 <input type="hidden" name="sellerId" value="${sellerId}">
 <input type="hidden" name="token" value="${token}">
         
@@ -186,7 +186,9 @@ function addProduct() {
       <div id="newProductArea\${productCount}">
         <div class="mb-2">
           <label class="form-label">상품 썸네일</label>
-          <input type="file" name="thumbnail\${productCount}" accept="image/*" class="form-control" />
+          <input type="file" accept="image/*" class="form-control"  onchange="uploadThumbnail(this, \${productCount})" />
+          <input type="hidden" name="thumbnailUrl\${productCount}" />
+          <img id="thumbnailPreview\${productCount}" src="" alt="미리보기" class="img-fluid mt-2" style="max-height: 100px; display:none;" />
         </div>
 
         <div class="mb-2">
@@ -245,6 +247,34 @@ function isDuplicateSelection(selectedValue, currentIdx) {
   return selectedValues.includes(selectedValue);
 }
 
+
+async function uploadThumbnail(input, idx) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const res = await fetch("/admin/uploadImage", {
+    method: "POST",
+    body: formData
+  });
+
+  if (res.ok) {
+    const data = await res.json();
+    const imageUrl = data.url;
+
+    // URL 저장
+    document.querySelector(\`input[name="thumbnailUrl\${idx}"]\`).value = imageUrl;
+
+    // 미리보기 표시
+    const preview = document.getElementById(\`thumbnailPreview\${idx}\`);
+    preview.src = imageUrl;
+    preview.style.display = "block";
+  } else {
+    alert("이미지 업로드에 실패했습니다.");
+  }
+}
 
 function toggleProductInput(select, idx) {
   const newArea = document.getElementById(\`newProductArea\${idx}\`);

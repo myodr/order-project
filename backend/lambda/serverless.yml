@@ -77,6 +77,12 @@ functions:
           path: viewOrder/{event_no}/{order_id}
           method: get
 
+  adminEventsList:
+    handler: adminEventsList.handler
+    events:
+      - http:
+          path: admin/events
+          method: get
   adminOrderStatus:
     handler: adminOrderStatus.handler
     events:

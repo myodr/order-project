@@ -155,7 +155,7 @@ exports.handler = async (event) => {
                         
                 </div>
                 <div class="form-check mt-2">
-                    <input class="form-check-input" type="checkbox" value="1" id="check_infop">
+                    <input class="form-check-input" type="checkbox" value="" id="check_infop">
                     <label class="form-check-label" for="check_infop">개인정보 수집 및 이용에 동의 합니다.</label>
                 </div>
                 

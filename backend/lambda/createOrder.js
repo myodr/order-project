@@ -82,7 +82,7 @@ exports.handler = async (event) => {
         orderItems: items,
         totalAmount,
         orderTime: now,
-        status: "PENDING"
+        status: "PENDING",
     };
 
     console.log("chk 3", order);
@@ -142,6 +142,9 @@ exports.handler = async (event) => {
     //order 에 입금은행명, 입금자명을 eventData에서 받아 적용한다
     order.payAccount = full.payAccount;
     order.payAccountOwner = full.payAccountOwner;
+
+    order.sellerId = full.sellerId;
+    order.eventKey = full.eventKey;
 
     try {
         await dynamoDb.transactWrite({

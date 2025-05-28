@@ -116,6 +116,8 @@ exports.handler = async (event) => {
         sellerId,
         eventsFullManage: {
             eventId,
+            eventKey,
+            sellerId,
             title: data.title,
             description: data.description,
             startTime,

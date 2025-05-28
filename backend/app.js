@@ -15,6 +15,8 @@ const createEventPage = require("./lambda/createEventPage");
 const createEvent = require("./lambda/createEvent");
 const uploadImage = require("./lambda/uploadImage");
 
+const eventsList = require("./lambda/adminEventsList");
+
 // URL-encoded form 파싱 (필수!)
 app.use(express.urlencoded({ extended: true }));
 
@@ -93,6 +95,16 @@ app.get('/admin/createEventPage' , async (req, res) =>{
     let resp = await createEventPage.handler(event);
     res.send (resp.body);
 });
+
+app.get('/admin/events', async (req, res) =>{
+    const {sellerId, token, filter, sort} = req.query;
+    let event = {
+        queryStringParameters: {sellerId, token, filter, sort}
+    }
+    let resp = await eventsList.handler(event);
+    res.send (resp.body);
+
+})
 
 app.get('/admin/orders', async (req, res) =>  {
 

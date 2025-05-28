@@ -146,7 +146,20 @@ exports.handler = async (event) => {
                         <label class="row ms-2" style="font-size: 0.8rem;">* 결제 관련 안내 - 현재 계좌이체를 지원합니다.</label>
                         <label class="row ms-2">[입금은행 안내]<br/> ${eventInfo.payAccount} ${eventInfo.payAccountOwner}</label>                        
                         <input type="text" class="form-control mt-2" id="payname" class="form-control mt-2" placeholder="입금자명">                        
-                </div>                        
+                </div>     
+                <div class="mt-2">
+                        <label><i class="bi bi-info-circle"></i> 개인정보 수집 및 이용 동의</label>
+                        <label class="row ms-2 mt-2" style="font-size: 0.9rem;">1. 수집목적 : 고객이 요청한 주문의 배송 및 고객관리</label>  
+                        <label class="row ms-2" style="font-size: 0.9rem;">2. 수집항목 : 주문자이름, 휴대전화번호, 주소</label>
+                        <label class="row ms-2" style="font-size: 0.9rem;">3. 보유 및 이용기간 : 주문완료일로부터 3년 </label>                                                                        
+                        
+                </div>
+                <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" value="1" id="check_infop">
+                    <label class="form-check-label" for="check_infop">개인정보 수집 및 이용에 동의 합니다.</label>
+                </div>
+                
+                                   
                 <div class="mt-2">
                 <button type="button" class="btn btn-danger w-100 mt-3 mb-20" onclick="showConfirmModal()">주문하기</button>
                 </div>
@@ -271,6 +284,7 @@ exports.handler = async (event) => {
         const items = [];
         let total = 0;
         
+                
         // 주문 수량 수집
         document.querySelectorAll(".quantity").forEach(input => {
             const quantity = parseInt(input.value) || 0;
@@ -311,6 +325,14 @@ exports.handler = async (event) => {
             return;
         }
         
+        const infop_checkbox = document.getElementById("check_infop");        
+        const infop = infop_checkbox.checked;
+        
+        if(!infop){
+            showErrorModal("개인정보 수집 및 이용에 동의 해 주세요.");
+            return;        
+        }
+
         
         
         // 주문 요약 HTML 생성

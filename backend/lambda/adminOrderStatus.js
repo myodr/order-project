@@ -134,8 +134,12 @@ exports.handler = async (event) => {
   </style>
 </head>
 <body>
-  <h3 class="text-center mb-4">주문현황</h3>
-
+<div class="d-flex align-items-center mb-3" style="gap: 8px;">
+  <button class="btn btn-outline-secondary btn-sm" onclick="history.back()">
+    <i class="bi bi-arrow-left"></i> 뒤로가기
+  </button>
+  <h5 class="m-0 flex-grow-1 text-center">주문 현황</h5>
+</div>
 <div class="card mb-4">
   <div class="card-body d-flex justify-content-between align-items-center">
     <span class="me-1 text-truncate" style="max-width: 85%;">

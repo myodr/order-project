@@ -87,7 +87,7 @@ app.post('/create-event', async(req, res) => {
     res.status(resp.statusCode).send(resp.body);
 });
 
-app.get('/admin/createEventPage' , async (req, res) =>{
+app.get('/admin/createEvent' , async (req, res) =>{
     const {sellerId} = req.query;
     let event = {
         queryStringParameters: {sellerId}

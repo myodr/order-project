@@ -89,7 +89,7 @@ exports.handler = async (event) => {
   </head>
   <body class="container mt-4">
     <h4 class="mb-4 text-center">이벤트 목록 (${sellerId})</h4>
-<form method="get" class="row row-cols-2 g-2 mb-3">
+        <form method="get" class="row row-cols-3 g-2 mb-3">
           <input type="hidden" name="sellerId" value="${sellerId}" />
           <div class="col">
             <select class="form-select" name="filter" onchange="this.form.submit()">
@@ -104,6 +104,11 @@ exports.handler = async (event) => {
               <option value="count" ${sort === 'count' ? 'selected' : ''}>주문건수순</option>
               <option value="amount" ${sort === 'amount' ? 'selected' : ''}>금액순</option>
             </select>
+          </div>
+          <div class="col">
+            <div class="d-grid">
+            <a href="/admin/createEvent?sellerId=${sellerId}&token=" class="btn btn-warning btn-md">신규 등록</a>
+          </div>
           </div>
         </form>
     ${filteredEvents.length === 0 ? `

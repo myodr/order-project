@@ -1,6 +1,8 @@
 const AWS = require("aws-sdk");
 const { v4: uuidv4 } = require("uuid");
 
+const { parseRequestBody } = require('./utils/requestParser');
+
 const dynamoDb = new AWS.DynamoDB.DocumentClient({ region: "ap-northeast-2" });
 const s3 = new AWS.S3();
 
@@ -14,14 +16,16 @@ const generateEventKey = () => {
 
 exports.handler = async (event) => {
 
-
-    console.log("chk type", typeof event.body, event.body);
-    let data;
-    if(typeof event.body === "object"){
-        data = event.body;
-    }else{
-        data = JSON.parse(event.body);
-    }
+    const { type, body } = parseRequestBody(event);
+    console.log("CHECK EVENT", type, body, event);
+    let data = body;
+    // console.log("chk type", typeof event.body, event.body);
+    // let data;
+    // if(typeof event.body === "object"){
+    //     data = event.body;
+    // }else{
+    //     data = JSON.parse(event.body);
+    // }
 
 
     const eventId = uuidv4();

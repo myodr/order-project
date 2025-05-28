@@ -1,13 +1,17 @@
 const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
+const {parseRequestBody} = require("./utils/requestParser");
 
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 const PRODUCTS_TABLE = "ProductsTable";
 
 exports.handler = async (event) => {
 
-    console.log("chk event" , event.body);
-    const data = JSON.parse(event.body);
+    const { type, body } = parseRequestBody(event);
+    console.log("CHECK EVENT", type, body, event);
+    let data = body;
+    // console.log("chk event" , event.body);
+    // const data = JSON.parse(event.body);
     const productId = uuidv4();
 
     const params = {

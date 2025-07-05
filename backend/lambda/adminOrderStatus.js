@@ -100,6 +100,7 @@ exports.handler = async (event) => {
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>       
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>        
+        <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
          <style>
       html {
     scroll-behavior: smooth;
@@ -134,6 +135,7 @@ exports.handler = async (event) => {
   </style>
 </head>
 <body>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <div class="d-flex align-items-center mb-3" style="gap: 8px;">
   <button class="btn btn-outline-secondary btn-sm" onclick="history.back()">
     <i class="bi bi-arrow-left"></i> 뒤로가기
@@ -166,10 +168,13 @@ exports.handler = async (event) => {
   </div>
 </div>
 
-<!-- 배송지 일괄출력 버튼 및 모달 -->
+<!-- 배송지 일괄출력/엑셀 다운로드 버튼 및 모달 -->
 <div class="mb-3 text-end">
-  <button class="btn btn-outline-success btn-sm" onclick="showAllAddresses()">
+  <button class="btn btn-outline-success btn-sm me-2" onclick="showAllAddresses()">
     <i class="bi bi-printer"></i> 배송지 일괄출력
+  </button>
+  <button class="btn btn-outline-primary btn-sm" onclick="downloadExcel()">
+    <i class="bi bi-file-earmark-excel"></i> 엑셀 다운로드
   </button>
 </div>
 <div class="modal fade" id="allAddressModal" tabindex="-1" aria-hidden="true">
@@ -451,6 +456,42 @@ function showAllAddresses() {
   listDiv.innerHTML = html;
   const modal = new bootstrap.Modal(document.getElementById("allAddressModal"));
   modal.show();
+}
+
+function downloadExcel() {
+  const orders = window.allOrders || [];
+  if (!orders.length) {
+    alert('다운로드할 주문 데이터가 없습니다.');
+    return;
+  }
+  // 헤더
+  const header = [
+    '주문번호', '주문자', '연락처', '상품명', '단가', '수량', '금액', '입금자명', '입금액', '입금확인', '발송여부', '송장번호'
+  ];
+  const rows = [header];
+  orders.forEach(order => {
+    const orderNo = order.orderNo || '';
+    const buyerName = order.buyerName || '';
+    const phone = order.phone || '';
+    const payname = order.payname || '';
+    const totalAmount = order.totalAmount || '';
+    const isPaid = order.isPaid ? 'O' : 'X';
+    const isShipped = order.isShipped ? 'O' : 'X';
+    const trackingNo = order.trackingNo || '';
+    (order.orderItems || []).forEach(item => {
+      const productName = item.productName || '';
+      const unitPrice = item.price || item.eventPrice || '';
+      const quantity = item.quantity || '';
+      const amount = unitPrice && quantity ? unitPrice * quantity : '';
+      rows.push([
+        orderNo, buyerName, phone, productName, unitPrice, quantity, amount, payname, totalAmount, isPaid, isShipped, trackingNo
+      ]);
+    });
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '주문내역');
+  XLSX.writeFile(wb, '주문내역.xlsx');
 }
 </script>
 

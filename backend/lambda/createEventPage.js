@@ -479,12 +479,55 @@ function initializeTinyMCE() {
     plugins: [
       'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
       'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-      'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+      'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount',
+      'textcolor', 'colorpicker'
     ],
-    toolbar: 'undo redo | formatselect | ' +
-      'bold italic backcolor | alignleft aligncenter ' +
-      'alignright alignjustify | bullist numlist outdent indent | ' +
-      'removeformat | help',
+    toolbar: 'undo redo | formatselect fontselect fontsizeselect | ' +
+      'bold italic underline strikethrough | forecolor backcolor | ' +
+      'alignleft aligncenter alignright alignjustify | ' +
+      'bullist numlist outdent indent | removeformat | help',
+    fontsize_formats: '8pt 10pt 12pt 14pt 16pt 18pt 24pt 36pt 48pt',
+    font_formats: 'IBM Plex Sans KR=IBM Plex Sans KR, sans-serif;' +
+                  'Arial=arial,helvetica,sans-serif;' +
+                  'Arial Black=arial black,avant garde;' +
+                  'Book Antiqua=book antiqua,palatino;' +
+                  'Comic Sans MS=comic sans ms,sans-serif;' +
+                  'Courier New=courier new,courier;' +
+                  'Georgia=georgia,palatino;' +
+                  'Helvetica=helvetica;' +
+                  'Impact=impact,chicago;' +
+                  'Tahoma=tahoma,arial,helvetica,sans-serif;' +
+                  'Terminal=terminal,monaco;' +
+                  'Times New Roman=times new roman,times;' +
+                  'Verdana=verdana,geneva;',
+    color_map: [
+      '000000', 'Black',
+      '4D4D4D', 'Dim Gray',
+      '999999', 'Gray',
+      'E6E6E6', 'Light Gray',
+      'FFFFFF', 'White',
+      'F44E3B', 'Red',
+      'FE9200', 'Orange',
+      'FCDC00', 'Yellow',
+      'DBDF00', 'Lime',
+      'A4DD00', 'Green',
+      '68CCCA', 'Cyan',
+      '73D8FF', 'Light Blue',
+      'AEA1FF', 'Purple',
+      'FDA1FF', 'Pink',
+      '333333', 'Dark Gray',
+      '808080', 'Gray',
+      'cccccc', 'Light Gray',
+      'D33115', 'Dark Red',
+      'E27300', 'Dark Orange',
+      'FCC400', 'Dark Yellow',
+      'B0BC00', 'Dark Lime',
+      '68BC00', 'Dark Green',
+      '16A5A5', 'Dark Cyan',
+      '009CE0', 'Dark Blue',
+      '7B64FF', 'Dark Purple',
+      'FA28FF', 'Dark Pink'
+    ],
     content_style: 'body { font-family: "IBM Plex Sans KR", sans-serif; font-size: 14px; }',
     language: 'ko_KR',
     branding: false,
@@ -519,12 +562,55 @@ function initializeRichEditor(index) {
       plugins: [
         'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
         'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-        'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+        'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount',
+        'textcolor', 'colorpicker'
       ],
-      toolbar: 'undo redo | formatselect | ' +
-        'bold italic backcolor | alignleft aligncenter ' +
-        'alignright alignjustify | bullist numlist outdent indent | ' +
-        'removeformat | help',
+      toolbar: 'undo redo | formatselect fontselect fontsizeselect | ' +
+        'bold italic underline strikethrough | forecolor backcolor | ' +
+        'alignleft aligncenter alignright alignjustify | ' +
+        'bullist numlist outdent indent | removeformat | help',
+      fontsize_formats: '8pt 10pt 12pt 14pt 16pt 18pt 24pt 36pt 48pt',
+      font_formats: 'IBM Plex Sans KR=IBM Plex Sans KR, sans-serif;' +
+                    'Arial=arial,helvetica,sans-serif;' +
+                    'Arial Black=arial black,avant garde;' +
+                    'Book Antiqua=book antiqua,palatino;' +
+                    'Comic Sans MS=comic sans ms,sans-serif;' +
+                    'Courier New=courier new,courier;' +
+                    'Georgia=georgia,palatino;' +
+                    'Helvetica=helvetica;' +
+                    'Impact=impact,chicago;' +
+                    'Tahoma=tahoma,arial,helvetica,sans-serif;' +
+                    'Terminal=terminal,monaco;' +
+                    'Times New Roman=times new roman,times;' +
+                    'Verdana=verdana,geneva;',
+      color_map: [
+        '000000', 'Black',
+        '4D4D4D', 'Dim Gray',
+        '999999', 'Gray',
+        'E6E6E6', 'Light Gray',
+        'FFFFFF', 'White',
+        'F44E3B', 'Red',
+        'FE9200', 'Orange',
+        'FCDC00', 'Yellow',
+        'DBDF00', 'Lime',
+        'A4DD00', 'Green',
+        '68CCCA', 'Cyan',
+        '73D8FF', 'Light Blue',
+        'AEA1FF', 'Purple',
+        'FDA1FF', 'Pink',
+        '333333', 'Dark Gray',
+        '808080', 'Gray',
+        'cccccc', 'Light Gray',
+        'D33115', 'Dark Red',
+        'E27300', 'Dark Orange',
+        'FCC400', 'Dark Yellow',
+        'B0BC00', 'Dark Lime',
+        '68BC00', 'Dark Green',
+        '16A5A5', 'Dark Cyan',
+        '009CE0', 'Dark Blue',
+        '7B64FF', 'Dark Purple',
+        'FA28FF', 'Dark Pink'
+      ],
       content_style: 'body { font-family: "IBM Plex Sans KR", sans-serif; font-size: 14px; }',
       language: 'ko_KR',
       branding: false,

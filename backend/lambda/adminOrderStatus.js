@@ -220,6 +220,16 @@ exports.handler = async (event) => {
           <p><strong>총 금액:</strong> ₩<span id="modal-totalAmount"></span></p>
           <p><strong>입금자명:</strong> <span id="modal-payName"></span></p>
 
+          <!-- 배송 주소 표시 -->
+          <div class="mb-2 p-2 bg-light border rounded">
+            <p class="mb-1"><strong>배송지 주소:</strong></p>
+            <div style="font-size:0.97em;">
+              <span id="modal-postcode" class="text-secondary"></span>
+              <span id="modal-address"></span>
+              <span id="modal-addressEtc"></span>
+            </div>
+          </div>
+
           <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" id="modal-isPaid">
             <label class="form-check-label" for="modal-isPaid">입금 확인</label>
@@ -274,6 +284,14 @@ exports.handler = async (event) => {
     document.getElementById("modal-buyerName").innerText = order.buyerName;
     document.getElementById("modal-payName").innerText = order.payname;
     document.getElementById("modal-totalAmount").innerText = (order.totalAmount || 0).toLocaleString();
+
+    // 배송지 주소 표시
+    const postcode = order.postcode || '';
+    const address = order.address || '';
+    const addressEtc = order.addressEtc || '';
+    document.getElementById("modal-postcode").innerText = ' ' //postcode ? \`[\${postcode}] \` : '';
+    document.getElementById("modal-address").innerText = address;
+    document.getElementById("modal-addressEtc").innerText = addressEtc ? ' ' + addressEtc : '';
 
     // 상품 목록 표시
     const itemList = document.getElementById("modal-orderItems");

@@ -166,6 +166,30 @@ exports.handler = async (event) => {
   </div>
 </div>
 
+<!-- 배송지 일괄출력 버튼 및 모달 -->
+<div class="mb-3 text-end">
+  <button class="btn btn-outline-success btn-sm" onclick="showAllAddresses()">
+    <i class="bi bi-printer"></i> 배송지 일괄출력
+  </button>
+</div>
+<div class="modal fade" id="allAddressModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">배송지 일괄 출력</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="allAddressList"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+        <button type="button" class="btn btn-primary" onclick="window.print()">인쇄</button>
+      </div>
+    </div>
+  </div>
+</div>
+
  <div class="d-flex flex-column gap-3">
     ${orders.map(order => `
       <div class="card shadow-sm border-0" id="order-${order.orderId}">
@@ -405,6 +429,28 @@ function showCopySuccess() {
     btn.innerText = "✅ 복사됨!";
     setTimeout(() => btn.innerText = original, 2000);
   }
+}
+
+// 주문 데이터 전체를 참조할 수 있도록 orders를 전역 변수로 노출
+window.allOrders = ${JSON.stringify(orders)};
+
+function showAllAddresses() {
+  const orders = window.allOrders || [];
+  const listDiv = document.getElementById("allAddressList");
+  if (!listDiv) return;
+  if (orders.length === 0) {
+    listDiv.innerHTML = '<p class="text-danger">주문 데이터가 없습니다.</p>';
+    return;
+  }
+  let html = '<table class="table table-bordered table-sm align-middle"><thead><tr>' +
+    '<th>주문번호</th><th>주문자</th><th>연락처</th><th>주소</th></tr></thead><tbody>';
+  orders.forEach(order => {
+    html += \`<tr><td>\${order.orderNo}</td><td>\${order.buyerName || ''}</td><td>\${order.phone || ''}</td><td>\${order.address || ''}</td></tr>\`;
+  });
+  html += '</tbody></table>';
+  listDiv.innerHTML = html;
+  const modal = new bootstrap.Modal(document.getElementById("allAddressModal"));
+  modal.show();
 }
 </script>
 

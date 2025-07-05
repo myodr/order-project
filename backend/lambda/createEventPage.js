@@ -59,9 +59,12 @@ exports.handler = async (event) => {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.tiny.cloud/1/h8zwm20qo9yllrv50wszs3qel54vjb18kt5hnk5x3cjm559p/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
   <style>
     body { font-family: 'IBM Plex Sans KR', sans-serif; padding: 2rem; }
     .product-entry { margin-bottom: 1rem; }
+    .tox-tinymce { border: 1px solid #ced4da !important; border-radius: 0.375rem !important; }
+    .tox .tox-toolbar { background-color: #f8f9fa !important; }
   </style>
 </head>
 <body>
@@ -106,7 +109,7 @@ ${isEditMode ? `<input type="hidden" name="eventId" value="${eventId}">` : ''}
 
   <div class="mb-3">
     <label class="form-label">이벤트 설명</label>
-    <textarea name="description" class="form-control" rows="3" required></textarea>
+    <textarea name="description" class="form-control rich-editor" rows="4" style="min-height: 120px;" required></textarea>
   </div>
 
   <div class="mb-3">
@@ -177,8 +180,18 @@ console.log("products", products);
 console.log("existingEvent", existingEvent);
 
 document.addEventListener('DOMContentLoaded', function() {
+    // 기존 데이터가 있으면 먼저 상품들을 추가한 후 TinyMCE 초기화
     if (isEditMode && existingEvent) {
         fillExistingEventData();
+        // 상품 추가 후 TinyMCE 초기화
+        setTimeout(() => {
+            initializeTinyMCE();
+        }, 500);
+    } else {
+        // 신규 생성인 경우 바로 TinyMCE 초기화
+        setTimeout(() => {
+            initializeTinyMCE();
+        }, 100);
     }
 });
 
@@ -205,6 +218,7 @@ function fillExistingEventData() {
     if (existingEvent.items && existingEvent.items.length > 0) {
         existingEvent.items.forEach((item, index) => {
             addProduct();
+            // 상품 데이터 즉시 설정 (TinyMCE는 나중에 초기화됨)
             fillProductData(index, item);
         });
     }
@@ -224,7 +238,13 @@ function fillProductData(index, item) {
     }
     
     productEntry.querySelector('input[name="productName' + index + '"]').value = item.productName || '';
-    productEntry.querySelector('input[name="description' + index + '"]').value = item.description || '';
+    
+    // textarea에 내용 설정 (TinyMCE 초기화 전이므로 직접 설정)
+    const descriptionTextarea = productEntry.querySelector('textarea[name="description' + index + '"]');
+    if (descriptionTextarea) {
+        descriptionTextarea.value = item.description || '';
+    }
+    
     productEntry.querySelector('input[name="unitPrice' + index + '"]').value = item.eventPrice || '';
     productEntry.querySelector('input[name="stock' + index + '"]').value = item.stock || 1;
     
@@ -287,7 +307,7 @@ function addProduct() {
         
         <div class="mb-2">
           <label class="form-label">상품 상세설명</label>
-          <input type="text" name="description\${productCount}" class="form-control" />
+          <textarea name="description\${productCount}" class="form-control rich-editor" rows="4" style="min-height: 120px;"></textarea>
         </div>
 
       </div>
@@ -306,6 +326,14 @@ function addProduct() {
   \`;
   
   productsArea.insertAdjacentHTML('beforeend', entry);
+  
+  // 새로 추가된 상품의 리치 에디터 초기화 (신규 추가 시에만)
+  if (!isEditMode) {
+    setTimeout(() => {
+      initializeRichEditor(productCount);
+    }, 300);
+  }
+  
   productCount++;
 }
 
@@ -354,13 +382,13 @@ function toggleProductInput(select, idx) {
   const newArea = document.getElementById('newProductArea' + idx);
   const unitPriceInput = document.querySelector('input[name = "unitPrice' + idx + '"]');
   const productNameInput = document.querySelector('input[name = "productName' + idx + '"]');
-  const descriptionInput = document.querySelector('input[name = "description' + idx + '"]');
+  const descriptionTextarea = document.querySelector('textarea[name = "description' + idx + '"]');
   const thumbnailInput = document.querySelector('input[name = "thumbnail' + idx + '"]');
   const selectedOption = select.options[select.selectedIndex];
   
   const selectedValue = select.value;
   
-  if (selectedValue && isDuplicateSelection(selectedValue, idx)) {
+      if (selectedValue && isDuplicateSelection(selectedValue, idx)) {
     const modal = new bootstrap.Modal(document.getElementById("duplicateModal"));
     modal.show();
 
@@ -368,7 +396,13 @@ function toggleProductInput(select, idx) {
 
     if (newArea) newArea.style.display = "block";
     if (productNameInput) productNameInput.value = "";
-    if (descriptionInput) descriptionInput.value = "";
+    
+    // TinyMCE 에디터 내용 초기화
+    const descriptionTextarea = document.querySelector('textarea[name="description' + idx + '"]');
+    if (descriptionTextarea && tinymce.get(descriptionTextarea.id)) {
+        tinymce.get(descriptionTextarea.id).setContent("");
+    }
+    
     if (unitPriceInput) unitPriceInput.value = "";
     if (thumbnailInput) thumbnailInput.disabled = false;
 
@@ -377,7 +411,13 @@ function toggleProductInput(select, idx) {
 
   if (select.value) {
     productNameInput.value = selectedOption.dataset.name;
-    descriptionInput.value = selectedOption.dataset.descr;
+    
+    // TinyMCE 에디터에 내용 설정
+    const descriptionTextarea = document.querySelector('textarea[name="description' + idx + '"]');
+    if (descriptionTextarea && tinymce.get(descriptionTextarea.id)) {
+        tinymce.get(descriptionTextarea.id).setContent(selectedOption.dataset.descr || "");
+    }
+    
     unitPriceInput.value = selectedOption.dataset.price;
     thumbnailInput.disabled = true;
     newArea.style.display = "none";
@@ -393,7 +433,13 @@ function toggleProductInput(select, idx) {
     hiddenInput.value = selectedOption.dataset.thumbnail || "";
   } else {
     productNameInput.value = "";
-    descriptionInput.value = "";
+    
+    // TinyMCE 에디터 내용 초기화
+    const descriptionTextarea = document.querySelector('textarea[name="description' + idx + '"]');
+    if (descriptionTextarea && tinymce.get(descriptionTextarea.id)) {
+        tinymce.get(descriptionTextarea.id).setContent("");
+    }
+    
     unitPriceInput.value = "";
     thumbnailInput.disabled = false;
     newArea.style.display = "block";
@@ -413,7 +459,85 @@ function showConfirmModal() {
 }
 
 function submitForm() {
+  // 모든 TinyMCE 에디터의 내용을 textarea에 동기화
+  tinymce.remove();
   document.getElementById("eventForm").submit();
+}
+
+// TinyMCE 초기화 함수
+function initializeTinyMCE() {
+  console.log('TinyMCE 초기화 시작');
+  console.log('찾은 rich-editor 요소들:', document.querySelectorAll('.rich-editor').length);
+  
+  // 이미 초기화된 에디터가 있으면 제거
+  tinymce.remove();
+  
+  tinymce.init({
+    selector: 'textarea.rich-editor',
+    height: 200,
+    menubar: false,
+    plugins: [
+      'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+      'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+      'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+    ],
+    toolbar: 'undo redo | formatselect | ' +
+      'bold italic backcolor | alignleft aligncenter ' +
+      'alignright alignjustify | bullist numlist outdent indent | ' +
+      'removeformat | help',
+    content_style: 'body { font-family: "IBM Plex Sans KR", sans-serif; font-size: 14px; }',
+    language: 'ko_KR',
+    branding: false,
+    elementpath: false,
+    resize: false,
+    setup: function(editor) {
+      console.log('TinyMCE 에디터 설정됨:', editor.id);
+    },
+    init_instance_callback: function(editor) {
+      console.log('TinyMCE 에디터 초기화 완료:', editor.id);
+    }
+  });
+}
+
+// 개별 리치 에디터 초기화 함수
+function initializeRichEditor(index) {
+  const textareaId = 'description' + index;
+  const textarea = document.querySelector('textarea[name="description' + index + '"]');
+  if (textarea) {
+    textarea.id = textareaId;
+    console.log('개별 에디터 초기화:', textareaId);
+    
+    // 이미 해당 에디터가 초기화되어 있으면 제거
+    if (tinymce.get(textareaId)) {
+      tinymce.remove('#' + textareaId);
+    }
+    
+    tinymce.init({
+      selector: '#' + textareaId,
+      height: 200,
+      menubar: false,
+      plugins: [
+        'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+        'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+        'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+      ],
+      toolbar: 'undo redo | formatselect | ' +
+        'bold italic backcolor | alignleft aligncenter ' +
+        'alignright alignjustify | bullist numlist outdent indent | ' +
+        'removeformat | help',
+      content_style: 'body { font-family: "IBM Plex Sans KR", sans-serif; font-size: 14px; }',
+      language: 'ko_KR',
+      branding: false,
+      elementpath: false,
+      resize: false,
+      setup: function(editor) {
+        console.log('개별 TinyMCE 에디터 설정됨:', editor.id);
+      },
+      init_instance_callback: function(editor) {
+        console.log('개별 TinyMCE 에디터 초기화 완료:', editor.id);
+      }
+    });
+  }
 }
 </script>
 

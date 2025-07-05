@@ -146,9 +146,11 @@ exports.handler = async (event) => {
                         <label class="row ms-2" style="font-size: 0.9rem;">2. 수집항목 : 주문자이름, 휴대전화번호, 주소</label>
                         <label class="row ms-2" style="font-size: 0.9rem;">3. 보유 및 이용기간 : 주문완료일로부터 3년 </label>                                                                        
                     </div>
-                    <div class="form-check mt-2">
-                        <input class="form-check-input" type="checkbox" value="" id="check_infop">
-                        <label class="form-check-label" for="check_infop">개인정보 수집 및 이용에 동의 합니다.</label>
+                    <div class="form-check mt-3 p-3 border rounded bg-light" style="text-align: center;">
+                        <input class="form-check-input" type="checkbox" value="" id="check_infop" style="float:none !important; transform: scale(1.5); margin-right: 12px;">
+                        <label class="form-check-label fw-bold text-primary" for="check_infop" style="font-size: 1.1em; cursor: pointer;">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>개인정보 수집 및 이용에 동의합니다.
+                        </label>
                     </div>
                     <div class="mt-2">
                         <button type="button" class="btn btn-danger w-100 mt-3 mb-20" onclick="showConfirmModal()">주문하기</button>

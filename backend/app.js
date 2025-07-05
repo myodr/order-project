@@ -88,9 +88,9 @@ app.post('/create-event', async(req, res) => {
 });
 
 app.get('/admin/createEvent' , async (req, res) =>{
-    const {sellerId} = req.query;
+    const {sellerId, eventId, token} = req.query;
     let event = {
-        queryStringParameters: {sellerId}
+        queryStringParameters: {sellerId, eventId, token}
     }
     let resp = await createEventPage.handler(event);
     res.send (resp.body);

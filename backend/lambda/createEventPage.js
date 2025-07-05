@@ -2,10 +2,12 @@ const AWS = require("aws-sdk");
 const dynamoDb = new AWS.DynamoDB.DocumentClient({ region: "ap-northeast-2" });
 
 const PRODUCTS_TABLE = "ProductsTable";
+const EVENTS_TABLE = "EventsTable";
 
 exports.handler = async (event) => {
     const sellerId = event.queryStringParameters?.sellerId;
     const token = event.queryStringParameters?.token;
+    const eventId = event.queryStringParameters?.eventId;
 
     if (!sellerId) {
         return {
@@ -15,7 +17,25 @@ exports.handler = async (event) => {
         };
     }
 
-    // 판매자별 상품 조회
+    let existingEvent = null;
+    let isEditMode = false;
+    
+    if (eventId) {
+        try {
+            const eventResult = await dynamoDb.get({
+                TableName: EVENTS_TABLE,
+                Key: { eventId }
+            }).promise();
+            
+            existingEvent = eventResult.Item?.eventsFullManage;
+            if (existingEvent && existingEvent.sellerId === sellerId) {
+                isEditMode = true;
+            }
+        } catch (error) {
+            console.error("이벤트 조회 오류:", error);
+        }
+    }
+
     const productsResult = await dynamoDb.query({
         TableName: PRODUCTS_TABLE,
         IndexName: "sellerId-index",
@@ -27,15 +47,15 @@ exports.handler = async (event) => {
 
     const products = productsResult.Items || [];
 
-    // 상품목록을 JavaScript로 주입
     const productsJson = JSON.stringify(products);
+    const existingEventJson = JSON.stringify(existingEvent);
 
     const html = `
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>주문 생성</title>
+  <title>${isEditMode ? '이벤트 수정' : '주문 생성'}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -46,11 +66,12 @@ exports.handler = async (event) => {
 </head>
 <body>
 
-<h3 class="mb-4">상품 주문</h3>
+<h3 class="mb-4">${isEditMode ? '이벤트 수정' : '상품 주문'}</h3>
 
 <form id="eventForm" method="POST" action="/admin/createEvent">
 <input type="hidden" name="sellerId" value="${sellerId}">
 <input type="hidden" name="token" value="${token}">
+${isEditMode ? `<input type="hidden" name="eventId" value="${eventId}">` : ''}
         
   <div class="mb-3">
     <label class="form-label">이벤트 제목</label>
@@ -106,7 +127,7 @@ exports.handler = async (event) => {
   </div>
 
   <div class="d-grid">
-    <button type="button" class="btn btn-primary" onclick="showConfirmModal()">주문 생성</button>
+    <button type="button" class="btn btn-primary" onclick="showConfirmModal()">${isEditMode ? '이벤트 수정' : '주문 생성'}</button>
   </div>
 </form>
 <!-- 📦 중복선택 경고 모달 -->
@@ -132,11 +153,11 @@ exports.handler = async (event) => {
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">이벤트 생성 확인</h5>
+        <h5 class="modal-title">${isEditMode ? '이벤트 수정' : '이벤트 생성'} 확인</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body text-center">
-        <p>이벤트를 생성하시겠습니까?</p>
+        <p>이벤트를 ${isEditMode ? '수정' : '생성'}하시겠습니까?</p>
       </div>
       <div class="modal-footer justify-content-center">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
@@ -147,10 +168,78 @@ exports.handler = async (event) => {
 </div>
 
 <script>
-const products = ${productsJson};  // 🔥 DynamoDB 상품 목록 주입
+const products = ${productsJson};
+const existingEvent = ${existingEventJson};
+const isEditMode = ${isEditMode};
 let productCount = 0;
 
 console.log("products", products);
+console.log("existingEvent", existingEvent);
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (isEditMode && existingEvent) {
+        fillExistingEventData();
+    }
+});
+
+function fillExistingEventData() {
+    document.querySelector('input[name="title"]').value = existingEvent.title || '';
+    document.querySelector('textarea[name="description"]').value = existingEvent.description || '';
+    document.querySelector('input[name="payAccount"]').value = existingEvent.payAccount || '';
+    document.querySelector('input[name="payAccountOwner"]').value = existingEvent.payAccountOwner || '';
+    
+    if (existingEvent.startTime) {
+        const startDate = new Date(existingEvent.startTime);
+        document.querySelector('input[name="startDate"]').value = startDate.toISOString().split('T')[0];
+        document.querySelector('select[name="startHour"]').value = startDate.getUTCHours();
+        document.querySelector('select[name="startMinute"]').value = startDate.getUTCMinutes();
+    }
+    
+    if (existingEvent.endTime) {
+        const endDate = new Date(existingEvent.endTime);
+        document.querySelector('input[name="endDate"]').value = endDate.toISOString().split('T')[0];
+        document.querySelector('select[name="endHour"]').value = endDate.getUTCHours();
+        document.querySelector('select[name="endMinute"]').value = endDate.getUTCMinutes();
+    }
+    
+    if (existingEvent.items && existingEvent.items.length > 0) {
+        existingEvent.items.forEach((item, index) => {
+            addProduct();
+            fillProductData(index, item);
+        });
+    }
+}
+
+function fillProductData(index, item) {
+    const productEntry = document.getElementById('product-entry-' + index);
+    if (!productEntry) return;
+    
+    const productSelect = productEntry.querySelector('select[name="productSelect' + index + '"]');
+    if (item.productId) {
+        const existingProduct = products.find(p => p.productId === item.productId);
+        if (existingProduct) {
+            productSelect.value = item.productId;
+            toggleProductInput(productSelect, index);
+        }
+    }
+    
+    productEntry.querySelector('input[name="productName' + index + '"]').value = item.productName || '';
+    productEntry.querySelector('input[name="description' + index + '"]').value = item.description || '';
+    productEntry.querySelector('input[name="unitPrice' + index + '"]').value = item.eventPrice || '';
+    productEntry.querySelector('input[name="stock' + index + '"]').value = item.stock || 1;
+    
+    const thumbnailUrlInput = productEntry.querySelector('input[name="thumbnailUrl' + index + '"]');
+    if (thumbnailUrlInput) {
+        thumbnailUrlInput.value = item.imageUrl || '';
+    }
+    
+    const thumbnailPreview = document.getElementById('thumbnailPreview' + index);
+    if (thumbnailPreview && item.imageUrl) {
+        thumbnailPreview.src = item.imageUrl;
+        thumbnailPreview.style.display = 'block';
+    }
+}
+
 function addProduct() {
   if (productCount >= 10) {
     alert("최대 10개의 상품만 추가할 수 있습니다.");
@@ -206,7 +295,7 @@ function addProduct() {
 
       <div class="mb-2">
         <label class="form-label">단가 (₩)</label>
-        <input type="number" name="unitPrice$\{productCount}" class="form-control" required />
+        <input type="number" name="unitPrice\${productCount}" class="form-control" required />
       </div>
 
       <div class="mb-2">
@@ -219,20 +308,7 @@ function addProduct() {
   productsArea.insertAdjacentHTML('beforeend', entry);
   productCount++;
 }
-//
-// function onProductChange(select, idx) {
-//   const selectedOption = select.options[select.selectedIndex];
-//   const unitPriceInput = document.querySelector(\`input[name="unitPrice\${idx}"]\`);
-//
-//   if (selectedOption.value) {
-//     unitPriceInput.value = selectedOption.dataset.price;
-//   } else {
-//     unitPriceInput.value = "";
-//   }
-// }
 
-
-// ✅ 현재 선택된 상품 중복 체크
 function isDuplicateSelection(selectedValue, currentIdx) {
   const selects = document.querySelectorAll('select[name^="productSelect"]');
   let selectedValues = [];
@@ -264,11 +340,9 @@ async function uploadThumbnail(input, idx) {
     const data = await res.json();
     const imageUrl = data.url;
 
-    // URL 저장
-    document.querySelector(\`input[name="thumbnailUrl\${idx}"]\`).value = imageUrl;
+    document.querySelector('input[name="thumbnailUrl' + idx + '"]').value = imageUrl;
 
-    // 미리보기 표시
-    const preview = document.getElementById(\`thumbnailPreview\${idx}\`);
+    const preview = document.getElementById('thumbnailPreview' + idx);
     preview.src = imageUrl;
     preview.style.display = "block";
   } else {
@@ -277,21 +351,19 @@ async function uploadThumbnail(input, idx) {
 }
 
 function toggleProductInput(select, idx) {
-  const newArea = document.getElementById(\`newProductArea\${idx}\`);
-  const unitPriceInput = document.querySelector(\`input[name = "unitPrice\${idx}"]\`);
-  const productNameInput = document.querySelector(\`input[name = "productName\${idx}"]\`);
-  const descriptionInput = document.querySelector(\`input[name = "description\${idx}"]\`);
-  const thumbnailInput = document.querySelector(\`input[name = "thumbnail\${idx}"]\`);
+  const newArea = document.getElementById('newProductArea' + idx);
+  const unitPriceInput = document.querySelector('input[name = "unitPrice' + idx + '"]');
+  const productNameInput = document.querySelector('input[name = "productName' + idx + '"]');
+  const descriptionInput = document.querySelector('input[name = "description' + idx + '"]');
+  const thumbnailInput = document.querySelector('input[name = "thumbnail' + idx + '"]');
   const selectedOption = select.options[select.selectedIndex];
   
   const selectedValue = select.value;
   
   if (selectedValue && isDuplicateSelection(selectedValue, idx)) {
-    // ❗ 중복 상품 선택 → 모달 경고
     const modal = new bootstrap.Modal(document.getElementById("duplicateModal"));
     modal.show();
 
-    // 선택 취소 (기존 선택 무효화)
     select.value = "";
 
     if (newArea) newArea.style.display = "block";
@@ -304,25 +376,22 @@ function toggleProductInput(select, idx) {
   }
 
   if (select.value) {
-    // 기존 상품 선택
     productNameInput.value = selectedOption.dataset.name;
     descriptionInput.value = selectedOption.dataset.descr;
     unitPriceInput.value = selectedOption.dataset.price;
     thumbnailInput.disabled = true;
     newArea.style.display = "none";
 
-    // ✅ thumbnailUrl을 hidden input에 저장할 수도 있음 (선택)
-    const hiddenThumbnailUrlInputName = \`thumbnailUrl\${idx}\`;
-    let hiddenInput = document.querySelector(\`input[name="\${hiddenThumbnailUrlInputName}"]\`);
+    const hiddenThumbnailUrlInputName = 'thumbnailUrl' + idx;
+    let hiddenInput = document.querySelector('input[name="' + hiddenThumbnailUrlInputName + '"]');
     if (!hiddenInput) {
       hiddenInput = document.createElement('input');
       hiddenInput.type = "hidden";
       hiddenInput.name = hiddenThumbnailUrlInputName;
-      document.getElementById(\`product-entry-\${idx}\`).appendChild(hiddenInput);
+      document.getElementById('product-entry-' + idx).appendChild(hiddenInput);
     }
     hiddenInput.value = selectedOption.dataset.thumbnail || "";
   } else {
-    // 신규 등록
     productNameInput.value = "";
     descriptionInput.value = "";
     unitPriceInput.value = "";
@@ -332,7 +401,7 @@ function toggleProductInput(select, idx) {
 }
 
 function deleteProduct(idx) {
-  const entry = document.getElementById(\`product-entry-\${idx}\`);
+  const entry = document.getElementById('product-entry-' + idx);
   if (entry) {
     entry.remove();
   }

@@ -126,8 +126,9 @@ exports.handler = async (event) => {
             <strong>총 주문:</strong> ${ev.totalOrders}건<br>
             <strong>총 금액:</strong> ₩${ev.totalAmount.toLocaleString()}
           </p>
-          <div class="d-grid">
+          <div class="d-grid gap-2">
             <a href="/admin/orders?eventId=${ev.eventId}&sellerId=${sellerId}&token=${ev.eventId}" class="btn btn-outline-primary btn-sm">주문 현황 보기</a>
+            <a href="/admin/createEvent?eventId=${ev.eventId}&sellerId=${sellerId}&token=" class="btn btn-outline-warning btn-sm">이벤트 수정</a>
           </div>
         </div>
       </div>

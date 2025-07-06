@@ -27,6 +27,14 @@ exports.handler = async (event) => {
         if (!eventInfo) {
             return { statusCode: 404, body: "이벤트 정보를 찾을 수 없습니다." };
         }
+
+        // 삭제된 이벤트 접근 차단
+        if (eventInfo.status === 'DELETED') {
+            return { 
+                statusCode: 410, 
+                body: "이 이벤트는 삭제되었습니다.\n관리자에게 문의하세요." 
+            };
+        }
     } catch (error) {
         console.error(error);
         return { statusCode: 500, body: "이벤트 정보를 가져오는 중 오류 발생" };
@@ -150,11 +158,30 @@ exports.handler = async (event) => {
                         <input type="text" id="address" class="form-control me-2 mt-2 bg-light" placeholder="우편번호를 검색하세요" readonly>
                         <input type="text" id="address_etc" class="form-control mt-2" placeholder="상세 주소 입력">
                     </div>
-                    <div class="mt-2">
-                        <label><i class="bi bi-credit-card" style="font-size: 1.2rem;"></i> 결제 정보</label>
-                        <label class="row ms-2" style="font-size: 0.8rem;">* 결제 관련 안내 - 현재 계좌이체를 지원합니다.</label>
-                        <label class="row ms-2" id="payAccountInfo">[입금은행 안내]<br/></label>                        
-                        <input type="text" class="form-control mt-2" id="payname" placeholder="입금자명">                        
+                    <div class="mt-4">
+                        <div class="border border-warning rounded p-3 bg-warning bg-opacity-10">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-credit-card-fill text-warning" style="font-size: 1.3rem;"></i>
+                                <label class="fw-bold ms-2 mb-0" style="font-size: 1.1rem; color: #d63384;">💳 결제 정보 (중요!)</label>
+                            </div>
+                            <div class="alert alert-warning py-2 mb-3" style="font-size: 0.9rem;">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                <strong>계좌이체로 결제됩니다.</strong> 주문 후 아래 계좌로 입금해주세요.
+                            </div>
+                            <div class="bg-white border rounded p-3 mb-3">
+                                <div class="row">
+                                    <div class="col-4 text-end fw-bold">입금은행:</div>
+                                    <div class="col-8" id="payAccountInfo">[입금은행 안내]</div>
+                                </div>
+                            </div>
+                            <div class="bg-white border rounded p-3">
+                                <label class="form-label fw-bold mb-2"><i class="bi bi-person-check-fill text-primary"></i> 입금자명</label>
+                                <input type="text" class="form-control form-control-lg" id="payname" placeholder="입금자명을 정확히 입력하세요" style="font-size: 1.1rem;">
+                                <div class="form-text text-danger mt-1">
+                                    <i class="bi bi-info-circle"></i> 입금자명이 다르면 주문 확인이 지연될 수 있습니다.
+                                </div>
+                            </div>
+                        </div>
                     </div>     
                     <div class="mt-2">
                         <label><i class="bi bi-info-circle"></i> 개인정보 수집 및 이용 동의</label>
@@ -212,16 +239,33 @@ exports.handler = async (event) => {
             </div>
             
             <!-- Order Complete Modal -->
-            <div class="modal fade" id="orderCompleteModal" tabindex="-1" aria-hidden="true">
+            <div class="modal fade" id="orderCompleteModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
               <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                   <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title">주문 완료</h5>                    
+                    <h5 class="modal-title">🎉 주문 완료</h5>                    
                   </div>
                   <div class="modal-body text-center">
-                    <p class="mb-2">주문이 성공적으로 접수되었습니다!</p>
-                    <p>주문번호: <strong id="completedOrderNo"></strong></p>
-                    <a id="viewOrderLink" class="btn btn-outline-success mt-2">주문 내역 확인</a>
+                    <div class="mb-3">
+                      <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+                    </div>
+                    <h6 class="mb-3">주문이 성공적으로 접수되었습니다!</h6>
+                    <div class="alert alert-info mb-3">
+                      <strong>주문번호:</strong> <span id="completedOrderNo" class="fw-bold text-primary"></span>
+                    </div>
+                    <p class="text-muted small mb-3">
+                      <i class="bi bi-info-circle"></i> 
+                      주문번호를 꼭 기억해주세요. 주문 조회 시 필요합니다.
+                    </p>
+                    <a id="viewOrderLink" class="btn btn-success btn-lg">
+                      <i class="bi bi-eye"></i> 주문 내역 확인
+                    </a>
+                  </div>
+                  <div class="modal-footer justify-content-center">
+                    <small class="text-muted">
+                      <i class="bi bi-shield-check"></i> 
+                      안전한 주문이 완료되었습니다. 페이지를 새로고침하거나 닫으셔도 됩니다.
+                    </small>
                   </div>
                 </div>
               </div>
@@ -317,8 +361,8 @@ exports.handler = async (event) => {
                     
                     // DOMPurify를 사용한 안전한 HTML sanitization
                     const sanitized = DOMPurify.sanitize(html, {
-                        ALLOWED_TAGS: ['b', 'strong', 'i', 'em', 'u', 'br', 'p', 'div', 'span', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
-                        ALLOWED_ATTR: ['style', 'class', 'id'],
+                        ALLOWED_TAGS: ['b', 'strong', 'i', 'em', 'u', 'br', 'p', 'div', 'span', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img'],
+                        ALLOWED_ATTR: ['style', 'class', 'id', 'src', 'alt', 'width', 'height', 'title', 'loading'],
                         ALLOW_DATA_ATTR: false,
                         KEEP_CONTENT: true,
                         RETURN_DOM: false,
@@ -378,7 +422,7 @@ exports.handler = async (event) => {
                     }
                     
                     // 결제 정보 렌더링
-                    document.getElementById("payAccountInfo").innerHTML = "[입금은행 안내]<br/> " + eventData.payAccount + " " + eventData.payAccountOwner;
+                    document.getElementById("payAccountInfo").innerHTML = "<strong>" + eventData.payAccount + "</strong><br><span class='text-muted'>예금주: " + eventData.payAccountOwner + "</span>";
                     
                     // 이벤트가 종료되지 않은 경우에만 주문 폼 표시
                     if (!eventData.isExpired) {
@@ -441,13 +485,23 @@ exports.handler = async (event) => {
                         
                         productDiv.innerHTML = \`
                             <div class="d-flex align-items-center">
-                                <img src="\${item.imageUrl}" alt="\${item.productName}" class="me-3 rounded-1 product-thumbnail" 
-                                     data-product-name="\${item.productName}" 
-                                     data-product-price="\${item.eventPrice}" 
-                                     data-product-description="\${encodeURIComponent(item.description || '')}" 
-                                     data-product-image="\${item.imageUrl}" 
-                                     style="cursor: pointer;">
-                                <div>
+                                <div class="me-3 text-center" style="min-width: 100px;">
+                                    <img src="\${item.imageUrl}" alt="\${item.productName}" class="rounded-1 product-thumbnail mb-2" 
+                                         data-product-name="\${item.productName}" 
+                                         data-product-price="\${item.eventPrice}" 
+                                         data-product-description="\${encodeURIComponent(item.description || '')}" 
+                                         data-product-image="\${item.imageUrl}" 
+                                         style="cursor: pointer; width: 100px; height: 100px; object-fit: cover;">
+                                    <div class="product-detail-btn" 
+                                         data-product-name="\${item.productName}" 
+                                         data-product-price="\${item.eventPrice}" 
+                                         data-product-description="\${encodeURIComponent(item.description || '')}" 
+                                         data-product-image="\${item.imageUrl}" 
+                                         style="cursor: pointer; font-size: 0.8rem; color: #007bff; text-decoration: underline;">
+                                        📋 상세내용보기
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
                                     <strong class="toggle-details">\${item.productName}</strong>
                                     <p class="mb-1 text-muted">₩\${item.eventPrice.toLocaleString()}</p>
                                     \${item.stock === 0 ? '<p class="sold-out">품절</p>' : ''}
@@ -490,6 +544,13 @@ exports.handler = async (event) => {
                     // 상품 썸네일 클릭 이벤트
                     document.querySelectorAll(".product-thumbnail").forEach(img => {
                         img.addEventListener("click", function() {
+                            showProductDetailModal(this);
+                        });
+                    });
+                    
+                    // 상세내용보기 버튼 클릭 이벤트
+                    document.querySelectorAll(".product-detail-btn").forEach(btn => {
+                        btn.addEventListener("click", function() {
                             showProductDetailModal(this);
                         });
                     });
@@ -578,7 +639,14 @@ exports.handler = async (event) => {
                     html += "<hr><div class='mb-2'><strong>주문자 정보</strong><br>이름: " + buyerName + "<br>연락처: " + buyerPhone + "</div>";
                     html += "<div class='mb-2'><strong>받는사람 정보</strong><br>이름: " + receiverName + "<br>연락처: " + receiverPhone + "</div>";
                     html += "<div class='mb-2'><strong>배송지</strong><br>[" + postcode + "] " + address + " " + addressEtc + "</div>";
-                    html += "<hr><p><strong>입금자명:</strong> " + payname + "</p>";
+                    
+                    // 결제 정보를 더 명확하게 표시
+                    html += "<hr><div class='alert alert-warning p-3 mb-2'>";
+                    html += "<div class='d-flex align-items-center mb-2'><i class='bi bi-credit-card-fill text-warning me-2'></i><strong>결제 정보</strong></div>";
+                    html += "<div class='mb-1'><strong>입금은행:</strong> " + eventData.payAccount + "</div>";
+                    html += "<div class='mb-1'><strong>예금주:</strong> " + eventData.payAccountOwner + "</div>";
+                    html += "<div class='mb-0'><strong>입금자명:</strong> <span class='text-danger'>" + payname + "</span></div>";
+                    html += "</div>";
                     
                     document.getElementById("confirmText").innerHTML = html;
                     
@@ -644,8 +712,20 @@ exports.handler = async (event) => {
                     
                           document.getElementById("orderLayer").innerHTML="";
                           
-                          const modal = new bootstrap.Modal(document.getElementById("orderCompleteModal"));
-                          modal.show();
+                          // 기존 모달들을 모두 닫기
+                          const existingModals = document.querySelectorAll('.modal');
+                          existingModals.forEach(modalElement => {
+                              const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                              if (modalInstance) {
+                                  modalInstance.hide();
+                              }
+                          });
+                          
+                          // 잠시 대기 후 주문 완료 모달 표시
+                          setTimeout(() => {
+                              const modal = new bootstrap.Modal(document.getElementById("orderCompleteModal"));
+                              modal.show();
+                          }, 300);
                       } else {
                           const err = await res.json();
                           showErrorModal("주문 실패: " + err.message);

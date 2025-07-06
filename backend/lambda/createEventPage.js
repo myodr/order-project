@@ -1,8 +1,10 @@
 const AWS = require("aws-sdk");
 const dynamoDb = new AWS.DynamoDB.DocumentClient({ region: "ap-northeast-2" });
 
+
 const PRODUCTS_TABLE = "ProductsTable";
 const EVENTS_TABLE = "EventsTable";
+const SELLER_TABLE = "SellerTable";
 
 exports.handler = async (event) => {
     const sellerId = event.queryStringParameters?.sellerId;
@@ -36,6 +38,18 @@ exports.handler = async (event) => {
         }
     }
 
+    // 판매자 프로필 정보 조회
+    let sellerProfile = {};
+    try {
+        const sellerResult = await dynamoDb.get({
+            TableName: SELLER_TABLE,
+            Key: { sellerId }
+        }).promise();
+        sellerProfile = sellerResult.Item || {};
+    } catch (error) {
+        console.error("판매자 프로필 조회 오류:", error);
+    }
+
     const productsResult = await dynamoDb.query({
         TableName: PRODUCTS_TABLE,
         IndexName: "sellerId-index",
@@ -49,6 +63,7 @@ exports.handler = async (event) => {
 
     const productsJson = JSON.stringify(products);
     const existingEventJson = JSON.stringify(existingEvent);
+    const sellerProfileJson = JSON.stringify(sellerProfile);
 
     const html = `
 <!DOCTYPE html>
@@ -65,6 +80,15 @@ exports.handler = async (event) => {
     .product-entry { margin-bottom: 1rem; }
     .tox-tinymce { border: 1px solid #ced4da !important; border-radius: 0.375rem !important; }
     .tox .tox-toolbar { background-color: #f8f9fa !important; }
+    .profile-header-info { 
+      background-color: #f8f9fa; 
+      border: 1px solid #dee2e6; 
+      border-radius: 0.375rem; 
+      padding: 0.75rem; 
+      margin-bottom: 1rem; 
+      font-size: 0.9rem; 
+    }
+    .profile-header-info .form-check { margin-top: 0.5rem; }
   </style>
 </head>
 <body>
@@ -109,17 +133,29 @@ ${isEditMode ? `<input type="hidden" name="eventId" value="${eventId}">` : ''}
 
   <div class="mb-3">
     <label class="form-label">이벤트 설명</label>
-    <textarea name="description" class="form-control rich-editor" rows="4" style="min-height: 120px;" required></textarea>
+    ${sellerProfile.profileHeader ? `
+    <div class="profile-header-info">
+      <strong>📝 기본 머릿글</strong>
+      <div class="mt-2">${sellerProfile.profileHeader}</div>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="useProfileHeader" ${sellerProfile.profileHeaderShow !== false ? 'checked' : ''}>
+        <label class="form-check-label" for="useProfileHeader">
+          이벤트 설명에 기본 머릿글 포함
+        </label>
+      </div>
+    </div>
+    ` : ''}
+    <textarea id="description" name="description" class="form-control rich-editor" rows="4" style="min-height: 120px;" required></textarea>
   </div>
 
   <div class="mb-3">
     <label class="form-label">입금 은행 계좌번호</label>
-    <input type="text" name="payAccount" class="form-control" required />
+    <input type="text" name="payAccount" class="form-control" value="${sellerProfile.bankName || ''}" required />
   </div>
 
   <div class="mb-3">
     <label class="form-label">입금 은행 예금주</label>
-    <input type="text" name="payAccountOwner" class="form-control" required />
+    <input type="text" name="payAccountOwner" class="form-control" value="${sellerProfile.bankOwner || ''}" required />
   </div>
 
   <div id="productsArea"></div>
@@ -129,8 +165,11 @@ ${isEditMode ? `<input type="hidden" name="eventId" value="${eventId}">` : ''}
     <button type="button" class="btn btn-outline-primary" onclick="addProduct()">상품 추가 (+)</button>
   </div>
 
-  <div class="d-grid">
+  <div class="d-grid mb-3">
     <button type="button" class="btn btn-primary" onclick="showConfirmModal()">${isEditMode ? '이벤트 수정' : '주문 생성'}</button>
+  </div>
+    <div class="d-grid mb-3">
+    <button type="button" class="btn btn-warning" onclick="history.back()">뒤로가기</button>
   </div>
 </form>
 <!-- 📦 중복선택 경고 모달 -->
@@ -173,11 +212,13 @@ ${isEditMode ? `<input type="hidden" name="eventId" value="${eventId}">` : ''}
 <script>
 const products = ${productsJson};
 const existingEvent = ${existingEventJson};
+const sellerProfile = ${sellerProfileJson};
 const isEditMode = ${isEditMode};
 let productCount = 0;
 
 console.log("products", products);
 console.log("existingEvent", existingEvent);
+console.log("sellerProfile", sellerProfile);
 
 document.addEventListener('DOMContentLoaded', function() {
     // 기존 데이터가 있으면 먼저 상품들을 추가한 후 TinyMCE 초기화
@@ -186,6 +227,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // 상품 추가 후 TinyMCE 초기화
         setTimeout(() => {
             initializeTinyMCE();
+            // TinyMCE 초기화 후 상품 데이터 다시 설정
+            if (existingEvent.items && existingEvent.items.length > 0) {
+                existingEvent.items.forEach((item, index) => {
+                    fillProductDataAfterTinyMCE(index, item);
+                });
+            }
         }, 500);
     } else {
         // 신규 생성인 경우 바로 TinyMCE 초기화
@@ -229,15 +276,21 @@ function fillProductData(index, item) {
     if (!productEntry) return;
     
     const productSelect = productEntry.querySelector('select[name="productSelect' + index + '"]');
-    if (item.productId) {
+    if (item.productId && productSelect) {
         const existingProduct = products.find(p => p.productId === item.productId);
         if (existingProduct) {
             productSelect.value = item.productId;
-            toggleProductInput(productSelect, index);
+            // toggleProductInput 호출 전에 잠시 대기하여 DOM이 완전히 준비되도록 함
+            setTimeout(() => {
+                toggleProductInput(productSelect, index);
+            }, 100);
         }
     }
     
-    productEntry.querySelector('input[name="productName' + index + '"]').value = item.productName || '';
+    const productNameInput = productEntry.querySelector('input[name="productName' + index + '"]');
+    if (productNameInput) {
+        productNameInput.value = item.productName || '';
+    }
     
     // textarea에 내용 설정 (TinyMCE 초기화 전이므로 직접 설정)
     const descriptionTextarea = productEntry.querySelector('textarea[name="description' + index + '"]');
@@ -245,8 +298,15 @@ function fillProductData(index, item) {
         descriptionTextarea.value = item.description || '';
     }
     
-    productEntry.querySelector('input[name="unitPrice' + index + '"]').value = item.eventPrice || '';
-    productEntry.querySelector('input[name="stock' + index + '"]').value = item.stock || 1;
+    const unitPriceInput = productEntry.querySelector('input[name="unitPrice' + index + '"]');
+    if (unitPriceInput) {
+        unitPriceInput.value = item.eventPrice || '';
+    }
+    
+    const stockInput = productEntry.querySelector('input[name="stock' + index + '"]');
+    if (stockInput) {
+        stockInput.value = item.stock || 1;
+    }
     
     const thumbnailUrlInput = productEntry.querySelector('input[name="thumbnailUrl' + index + '"]');
     if (thumbnailUrlInput) {
@@ -257,6 +317,28 @@ function fillProductData(index, item) {
     if (thumbnailPreview && item.imageUrl) {
         thumbnailPreview.src = item.imageUrl;
         thumbnailPreview.style.display = 'block';
+    }
+}
+
+// TinyMCE 초기화 후 상품 데이터 설정 함수
+function fillProductDataAfterTinyMCE(index, item) {
+    const productEntry = document.getElementById('product-entry-' + index);
+    if (!productEntry) return;
+    
+    const productSelect = productEntry.querySelector('select[name="productSelect' + index + '"]');
+    if (item.productId && productSelect) {
+        const existingProduct = products.find(p => p.productId === item.productId);
+        if (existingProduct) {
+            productSelect.value = item.productId;
+            // TinyMCE가 초기화된 후이므로 바로 호출
+            toggleProductInput(productSelect, index);
+        }
+    }
+    
+    // TinyMCE 에디터에 내용 설정
+    const descriptionTextarea = document.querySelector('textarea[name="description' + index + '"]');
+    if (descriptionTextarea && tinymce.get(descriptionTextarea.id)) {
+        tinymce.get(descriptionTextarea.id).setContent(item.description || "");
     }
 }
 
@@ -327,12 +409,10 @@ function addProduct() {
   
   productsArea.insertAdjacentHTML('beforeend', entry);
   
-  // 새로 추가된 상품의 리치 에디터 초기화 (신규 추가 시에만)
-  if (!isEditMode) {
-    setTimeout(() => {
-      initializeRichEditor(productCount);
-    }, 300);
-  }
+  // 새로 추가된 상품의 리치 에디터 초기화 (항상 초기화)
+  setTimeout(() => {
+    initializeRichEditor(productCount);
+  }, 300);
   
   productCount++;
 }
@@ -383,12 +463,12 @@ function toggleProductInput(select, idx) {
   const unitPriceInput = document.querySelector('input[name = "unitPrice' + idx + '"]');
   const productNameInput = document.querySelector('input[name = "productName' + idx + '"]');
   const descriptionTextarea = document.querySelector('textarea[name = "description' + idx + '"]');
-  const thumbnailInput = document.querySelector('input[name = "thumbnail' + idx + '"]');
+  const thumbnailFileInput = document.querySelector('#product-entry-' + idx + ' input[type="file"]');
   const selectedOption = select.options[select.selectedIndex];
   
   const selectedValue = select.value;
   
-      if (selectedValue && isDuplicateSelection(selectedValue, idx)) {
+  if (selectedValue && isDuplicateSelection(selectedValue, idx)) {
     const modal = new bootstrap.Modal(document.getElementById("duplicateModal"));
     modal.show();
 
@@ -404,23 +484,33 @@ function toggleProductInput(select, idx) {
     }
     
     if (unitPriceInput) unitPriceInput.value = "";
-    if (thumbnailInput) thumbnailInput.disabled = false;
+    if (thumbnailFileInput) thumbnailFileInput.disabled = false;
 
     return;
   }
 
   if (select.value) {
-    productNameInput.value = selectedOption.dataset.name;
+    if (productNameInput) productNameInput.value = selectedOption.dataset.name;
     
     // TinyMCE 에디터에 내용 설정
     const descriptionTextarea = document.querySelector('textarea[name="description' + idx + '"]');
     if (descriptionTextarea && tinymce.get(descriptionTextarea.id)) {
         tinymce.get(descriptionTextarea.id).setContent(selectedOption.dataset.descr || "");
+    } else if (descriptionTextarea) {
+        // TinyMCE가 아직 초기화되지 않은 경우 직접 설정
+        descriptionTextarea.value = selectedOption.dataset.descr || "";
+        // TinyMCE 초기화 대기 후 다시 설정
+        setTimeout(() => {
+            if (tinymce.get(descriptionTextarea.id)) {
+                tinymce.get(descriptionTextarea.id).setContent(selectedOption.dataset.descr || "");
+            }
+        }, 100);
     }
     
-    unitPriceInput.value = selectedOption.dataset.price;
-    thumbnailInput.disabled = true;
-    newArea.style.display = "none";
+    if (unitPriceInput) unitPriceInput.value = selectedOption.dataset.price;
+    if (thumbnailFileInput) thumbnailFileInput.disabled = true;
+    // 기존 상품 선택 시에도 상품 상세설명 영역은 표시 (수정 가능하도록)
+    if (newArea) newArea.style.display = "block";
 
     const hiddenThumbnailUrlInputName = 'thumbnailUrl' + idx;
     let hiddenInput = document.querySelector('input[name="' + hiddenThumbnailUrlInputName + '"]');
@@ -428,21 +518,26 @@ function toggleProductInput(select, idx) {
       hiddenInput = document.createElement('input');
       hiddenInput.type = "hidden";
       hiddenInput.name = hiddenThumbnailUrlInputName;
-      document.getElementById('product-entry-' + idx).appendChild(hiddenInput);
+      const productEntry = document.getElementById('product-entry-' + idx);
+      if (productEntry) {
+        productEntry.appendChild(hiddenInput);
+      }
     }
     hiddenInput.value = selectedOption.dataset.thumbnail || "";
   } else {
-    productNameInput.value = "";
+    if (productNameInput) productNameInput.value = "";
     
     // TinyMCE 에디터 내용 초기화
     const descriptionTextarea = document.querySelector('textarea[name="description' + idx + '"]');
     if (descriptionTextarea && tinymce.get(descriptionTextarea.id)) {
         tinymce.get(descriptionTextarea.id).setContent("");
+    } else if (descriptionTextarea) {
+        descriptionTextarea.value = "";
     }
     
-    unitPriceInput.value = "";
-    thumbnailInput.disabled = false;
-    newArea.style.display = "block";
+    if (unitPriceInput) unitPriceInput.value = "";
+    if (thumbnailFileInput) thumbnailFileInput.disabled = false;
+    if (newArea) newArea.style.display = "block";
   }
 }
 
@@ -459,8 +554,45 @@ function showConfirmModal() {
 }
 
 function submitForm() {
+  // 머릿글 포함 여부 확인 및 처리
+  const useProfileHeader = document.getElementById('useProfileHeader');
+  
+  if (useProfileHeader && useProfileHeader.checked && sellerProfile.profileHeader) {
+    try {
+      // TinyMCE 에디터 찾기 (여러 방법으로 시도)
+      let descriptionEditor = tinymce.get('description');
+      if (!descriptionEditor) {
+        // ID로 찾기 실패 시 name으로 찾기
+        const textarea = document.querySelector('textarea[name="description"]');
+        if (textarea) {
+          descriptionEditor = tinymce.get(textarea.id);
+        }
+      }
+      
+      if (descriptionEditor) {
+        const currentContent = descriptionEditor.getContent();
+        const headerContent = sellerProfile.profileHeader;
+        
+        // 이미 머릿글이 포함되어 있는지 확인
+        if (!currentContent.includes(headerContent)) {
+          const newContent = headerContent + '<br><br>' + currentContent;
+          descriptionEditor.setContent(newContent);
+        }
+      } else {
+        console.warn('TinyMCE 에디터를 찾을 수 없습니다.');
+      }
+    } catch (error) {
+      console.error('머릿글 추가 중 오류:', error);
+    }
+  }
+  
   // 모든 TinyMCE 에디터의 내용을 textarea에 동기화
-  tinymce.remove();
+  try {
+    tinymce.remove();
+  } catch (error) {
+    console.error('TinyMCE 제거 중 오류:', error);
+  }
+  
   document.getElementById("eventForm").submit();
 }
 
@@ -485,7 +617,7 @@ function initializeTinyMCE() {
     toolbar: 'undo redo | formatselect fontselect fontsizeselect | ' +
       'bold italic underline strikethrough | forecolor backcolor | ' +
       'alignleft aligncenter alignright alignjustify | ' +
-      'bullist numlist outdent indent | removeformat | help',
+      'bullist numlist outdent indent | image | removeformat | help',
     fontsize_formats: '8pt 10pt 12pt 14pt 16pt 18pt 24pt 36pt 48pt',
     font_formats: 'IBM Plex Sans KR=IBM Plex Sans KR, sans-serif;' +
                   'Arial=arial,helvetica,sans-serif;' +
@@ -533,11 +665,51 @@ function initializeTinyMCE() {
     branding: false,
     elementpath: false,
     resize: false,
+    // 이미지 업로드 설정
+    images_upload_url: '/admin/uploadImage',
+    images_upload_handler: function (blobInfo, success, failure, progress) {
+      return new Promise((resolve, reject) => {
+        const formData = new FormData();
+        formData.append('image', blobInfo.blob(), blobInfo.filename());
+        
+        fetch('/admin/uploadImage', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => response.json())
+        .then(result => {
+          if (result.url) {
+            success(result.url);
+            resolve();
+          } else {
+            failure('이미지 업로드 실패');
+            reject();
+          }
+        })
+        .catch(error => {
+          console.error('이미지 업로드 오류:', error);
+          failure('이미지 업로드 중 오류가 발생했습니다.');
+          reject();
+        });
+      });
+    },
     setup: function(editor) {
       console.log('TinyMCE 에디터 설정됨:', editor.id);
     },
     init_instance_callback: function(editor) {
       console.log('TinyMCE 에디터 초기화 완료:', editor.id);
+      
+      // 이벤트 설명 에디터에 머릿글 자동 추가 (신규 생성 시에만)
+      if (editor.id === 'description' && !isEditMode && sellerProfile.profileHeader && sellerProfile.profileHeaderShow !== false) {
+        try {
+          const currentContent = editor.getContent();
+          if (!currentContent.trim()) {
+            editor.setContent(sellerProfile.profileHeader);
+          }
+        } catch (error) {
+          console.error('머릿글 자동 추가 중 오류:', error);
+        }
+      }
     }
   });
 }
@@ -568,7 +740,7 @@ function initializeRichEditor(index) {
       toolbar: 'undo redo | formatselect fontselect fontsizeselect | ' +
         'bold italic underline strikethrough | forecolor backcolor | ' +
         'alignleft aligncenter alignright alignjustify | ' +
-        'bullist numlist outdent indent | removeformat | help',
+        'bullist numlist outdent indent | image | removeformat | help',
       fontsize_formats: '8pt 10pt 12pt 14pt 16pt 18pt 24pt 36pt 48pt',
       font_formats: 'IBM Plex Sans KR=IBM Plex Sans KR, sans-serif;' +
                     'Arial=arial,helvetica,sans-serif;' +
@@ -616,6 +788,34 @@ function initializeRichEditor(index) {
       branding: false,
       elementpath: false,
       resize: false,
+      // 이미지 업로드 설정
+      images_upload_url: '/admin/uploadImage',
+      images_upload_handler: function (blobInfo, success, failure, progress) {
+        return new Promise((resolve, reject) => {
+          const formData = new FormData();
+          formData.append('image', blobInfo.blob(), blobInfo.filename());
+          
+          fetch('/admin/uploadImage', {
+            method: 'POST',
+            body: formData
+          })
+          .then(response => response.json())
+          .then(result => {
+            if (result.url) {
+              success(result.url);
+              resolve();
+            } else {
+              failure('이미지 업로드 실패');
+              reject();
+            }
+          })
+          .catch(error => {
+            console.error('이미지 업로드 오류:', error);
+            failure('이미지 업로드 중 오류가 발생했습니다.');
+            reject();
+          });
+        });
+      },
       setup: function(editor) {
         console.log('개별 TinyMCE 에디터 설정됨:', editor.id);
       },

@@ -3,6 +3,7 @@ const dynamoDb = new AWS.DynamoDB.DocumentClient({ region: "ap-northeast-2" });
 
 const ORDERS_TABLE = "OrdersTable";
 const EVENTS_TABLE = "EventsTable";
+const PRODUCTS_TABLE = "ProductsTable";
 
 exports.handler = async (event) => {
     const eventId = event.queryStringParameters?.eventId;
@@ -37,6 +38,15 @@ exports.handler = async (event) => {
 
         const eventInfo = eventResult.Item.eventsFullManage;
 
+        // 삭제된 이벤트 접근 차단
+        if (eventInfo.status === 'DELETED') {
+            return {
+                statusCode: 410,
+                headers: { "Content-Type": "text/html" },
+                body: `<h3>이 이벤트는 삭제되었습니다.<br>관리자에게 문의하세요.</h3>`
+            };
+        }
+
         const result = await dynamoDb.query({
             TableName: ORDERS_TABLE,
             IndexName: "eventId-index", // 🔸 GSI 필요
@@ -50,6 +60,26 @@ exports.handler = async (event) => {
 
         const totalOrders = orders.length;
         const totalAmount = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+
+        // 상품 정보 조회 (공급처, 공급가 등)
+        const productIds = [...new Set(orders.flatMap(order => 
+            (order.orderItems || []).map(item => item.productId)
+        ))];
+
+        const productsMap = new Map();
+        if (productIds.length > 0) {
+            const productsResult = await dynamoDb.batchGet({
+                RequestItems: {
+                    [PRODUCTS_TABLE]: {
+                        Keys: productIds.map(productId => ({ productId }))
+                    }
+                }
+            }).promise();
+            
+            (productsResult.Responses?.[PRODUCTS_TABLE] || []).forEach(product => {
+                productsMap.set(product.productId, product);
+            });
+        }
 
         // 상품별 요약 Map 생성
         const productSummaryMap = new Map();
@@ -137,8 +167,8 @@ exports.handler = async (event) => {
 <body>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <div class="d-flex align-items-center mb-3" style="gap: 8px;">
-  <button class="btn btn-outline-secondary btn-sm" onclick="history.back()">
-    <i class="bi bi-arrow-left"></i> 뒤로가기
+  <button class="btn btn-outline-secondary btn-sm" onclick="window.location.href='/admin/events?sellerId=${sellerId}&token=${token}'">
+    <i class="bi bi-arrow-left"></i> 목록으로
   </button>
   <h5 class="m-0 flex-grow-1 text-center">주문 현황</h5>
 </div>
@@ -443,6 +473,7 @@ function showCopySuccess() {
 
 // 주문 데이터 전체를 참조할 수 있도록 orders를 전역 변수로 노출
 window.allOrders = ${JSON.stringify(orders)};
+window.productsMap = ${JSON.stringify(Object.fromEntries(productsMap))};
 
 function showAllAddresses() {
   const orders = window.allOrders || [];
@@ -465,15 +496,22 @@ function showAllAddresses() {
 
 function downloadExcel() {
   const orders = window.allOrders || [];
+  const productsMap = window.productsMap || {};
+  
   if (!orders.length) {
     alert('다운로드할 주문 데이터가 없습니다.');
     return;
   }
-  // 헤더
+  
+  // 헤더 (공급처, 공급가, 배송지 주소 추가)
   const header = [
-    '주문번호', '주문자', '주문자연락처', '받는사람', '받는사람연락처', '상품명', '단가', '수량', '금액', '입금자명', '입금액', '입금확인', '발송여부', '송장번호'
+    '주문번호', '주문자', '주문자연락처', '받는사람', '받는사람연락처', 
+    '상품명', '판매가', '수량', '합계금액', '공급처', '공급가', 
+    '입금자명', '입금액', '입금확인', '발송여부', '송장번호',
+    '배송지주소'
   ];
   const rows = [header];
+  
   orders.forEach(order => {
     const orderNo = order.orderNo || '';
     const buyerName = order.buyerName || '';
@@ -485,16 +523,26 @@ function downloadExcel() {
     const isPaid = order.isPaid ? 'O' : 'X';
     const isShipped = order.isShipped ? 'O' : 'X';
     const trackingNo = order.trackingNo || '';
+    
     (order.orderItems || []).forEach(item => {
       const productName = item.productName || '';
       const unitPrice = item.price || item.eventPrice || '';
       const quantity = item.quantity || '';
       const amount = unitPrice && quantity ? unitPrice * quantity : '';
+      
+      // 상품 정보에서 공급처, 공급가 가져오기
+      const product = productsMap[item.productId] || {};
+      const supplier = product.supplier || '';
+      const supplyPrice = product.supplyPrice || '';
+      
       rows.push([
-        orderNo, buyerName, buyerPhone, receiverName, receiverPhone, productName, unitPrice, quantity, amount, payname, totalAmount, isPaid, isShipped, trackingNo
+        orderNo, buyerName, buyerPhone, receiverName, receiverPhone, 
+        productName, unitPrice, quantity, amount, supplier, supplyPrice,
+        payname, totalAmount, isPaid, isShipped, trackingNo, order.address || ''
       ]);
     });
   });
+  
   const ws = XLSX.utils.aoa_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '주문내역');

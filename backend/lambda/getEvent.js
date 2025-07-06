@@ -23,6 +23,14 @@ exports.handler = async (event) => {
         if (!eventInfo) {
             return { statusCode: 404, body: "이벤트 정보를 찾을 수 없습니다." };
         }
+
+        // 삭제된 이벤트 접근 차단
+        if (eventInfo.status === 'DELETED') {
+            return { 
+                statusCode: 410, 
+                body: "이 이벤트는 삭제되었습니다.\\n관리자에게 문의하세요." 
+            };
+        }
     } catch (error) {
         console.error(error);
         return { statusCode: 500, body: "이벤트 정보를 가져오는 중 오류 발생" };

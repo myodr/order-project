@@ -183,18 +183,61 @@ exports.handler = async (event) => {
         </div>
 
         <div class="section">
-          <h5><i class="bi bi-cash-coin"></i> 결제 금액</h5>
-          <p><strong>총 결제금액:</strong> ${(order.totalAmount || 0).toLocaleString()}원</p>
-          <p><strong>입금은행:</strong> ${order.payAccount} / ${order.payAccountOwner} </p>
-          <p><strong>입금자명:</strong> ${order.payname || "(미입력)"}</p>
-          <p><strong>입금 확인:</strong> ${order.isPaid ? '<span class="text-success">완료</span>' : '<span class="text-danger">미확인</span>'}</p>
-          
-          <p><strong>배송 상태:</strong>
-            <span class="badge ${order.isShipped ? 'bg-info text-dark' : 'bg-warning text-dark'}">
-              ${order.isShipped ? '발송 완료' : '발송 대기'}
-            </span>
-          </p>
-            ${order.trackingNo ? `<p><strong>송장번호:</strong> ${order.trackingNo}</p>` : ''}
+          <div class="border border-warning rounded p-3 bg-warning bg-opacity-10">
+            <div class="d-flex align-items-center mb-3">
+              <i class="bi bi-credit-card-fill text-warning" style="font-size: 1.3rem;"></i>
+              <h5 class="mb-0 ms-2" style="color: #d63384;">💳 결제 정보 (중요!)</h5>
+            </div>
+            
+            <div class="alert alert-warning py-2 mb-3" style="font-size: 0.9rem;">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+              <strong>아직 입금하지 않으셨다면 아래 계좌로 입금해주세요.</strong>
+            </div>
+            
+            <div class="bg-white border rounded p-3 mb-3">
+              <div class="row mb-2">
+                <div class="col-4 text-end fw-bold">총 결제금액:</div>
+                <div class="col-8 fw-bold text-danger" style="font-size: 1.1rem;">${(order.totalAmount || 0).toLocaleString()}원</div>
+              </div>
+              <div class="row mb-2">
+                <div class="col-4 text-end fw-bold">입금은행:</div>
+                <div class="col-8">${order.payAccount}</div>
+              </div>
+              <div class="row mb-2">
+                <div class="col-4 text-end fw-bold">예금주:</div>
+                <div class="col-8">${order.payAccountOwner}</div>
+              </div>
+              <div class="row">
+                <div class="col-4 text-end fw-bold">입금자명:</div>
+                <div class="col-8">
+                  <span class="fw-bold text-primary">${order.payname || "(미입력)"}</span>
+                  ${!order.payname ? '<br><small class="text-danger">입금자명을 정확히 입력해주세요!</small>' : ''}
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-white border rounded p-3">
+              <div class="row mb-2">
+                <div class="col-6 text-center">
+                  <strong>입금 확인:</strong><br>
+                  <span class="badge ${order.isPaid ? 'bg-success' : 'bg-danger'} fs-6">
+                    ${order.isPaid ? '✅ 완료' : '❌ 미확인'}
+                  </span>
+                </div>
+                <div class="col-6 text-center">
+                  <strong>배송 상태:</strong><br>
+                  <span class="badge ${order.isShipped ? 'bg-info text-dark' : 'bg-warning text-dark'} fs-6">
+                    ${order.isShipped ? '🚚 발송완료' : '📦 발송대기'}
+                  </span>
+                </div>
+              </div>
+              ${order.trackingNo ? `
+                <div class="text-center mt-2">
+                  <strong>송장번호:</strong> <span class="text-primary">${order.trackingNo}</span>
+                </div>
+              ` : ''}
+            </div>
+          </div>
         </div>
 
         <div class="text-center mt-5 text-secondary">

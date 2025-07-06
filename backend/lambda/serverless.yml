@@ -19,6 +19,22 @@ provider:
         - lambda:InvokeFunction
       Resource: "*"
 
+resources:
+  Resources:
+    SellerTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: SellerTable
+        AttributeDefinitions:
+          - AttributeName: sellerId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: sellerId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        SSESpecification:
+          SSEEnabled: true
+
 functions:
   uploadImage:
     handler: uploadImage.handler
@@ -134,6 +150,38 @@ functions:
       - http:
           path: admin
           method: get
+          cors: true
+
+  createAdminProfilePage:
+    handler: createAdminProfilePage.handler
+    events:
+      - http:
+          path: admin/profile
+          method: get
+          cors: true
+
+  saveAdminProfile:
+    handler: saveAdminProfile.handler
+    events:
+      - http:
+          path: admin/profile/save
+          method: post
+          cors: true
+
+  createAdminProductsPage:
+    handler: createAdminProductsPage.handler
+    events:
+      - http:
+          path: admin/products
+          method: post
+          cors: true
+
+  deleteEvent:
+    handler: deleteEvent.handler
+    events:
+      - http:
+          path: admin/events/delete
+          method: post
           cors: true
 
 plugins:

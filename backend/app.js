@@ -1,39 +1,60 @@
 const express = require('express');
+const getRawBody = require('raw-body');
 const app = express();
 const port = 3000;
 
-const getRawBody = require('raw-body'); // 추가 필요
-
 // const {getEvent}  = require('lambda/getEvent');
-const getEventPage = require('./lambda/getEventPage');
-const createOrder = require("./lambda/createOrder");
-const viewOrder = require("./lambda/viewOrder");
-const adminOrderStatus = require("./lambda/adminOrderStatus");
-const updateOrderStatus = require("./lambda/updateOrderStatus");
+const lambdaHandlers = {
+  getEventPage: require('./lambda/getEventPage'),
+  createOrder: require('./lambda/createOrder'),
+  viewOrder: require('./lambda/viewOrder'),
+  adminOrderStatus: require('./lambda/adminOrderStatus'),
+  updateOrderStatus: require('./lambda/updateOrderStatus'),
+  createEventPage: require('./lambda/createEventPage'),
+  createEvent: require('./lambda/createEvent'),
+  uploadImage: require('./lambda/uploadImage'),
+  eventsList: require('./lambda/adminEventsList'),
+  createAdminProfilePage: require('./lambda/createAdminProfilePage'),
+  saveAdminProfile: require('./lambda/saveAdminProfile'),
+  createAdminProductsPage: require('./lambda/createAdminProductsPage'),
+  saveAdminProducts: require('./lambda/saveAdminProducts'),
+  deleteEvent: require('./lambda/deleteEvent'),
+  // ...필요시 추가
+};
 
-const createEventPage = require("./lambda/createEventPage");
-const createEvent = require("./lambda/createEvent");
-const uploadImage = require("./lambda/uploadImage");
+// 공통 Lambda 프록시 함수
+async function lambdaProxy(handler, { req, res, eventBuilder, redirectOn302 = false }) {
+  try {
+    const event = eventBuilder(req);
+    const result = await handler(event);
 
-const eventsList = require("./lambda/adminEventsList");
+    if (redirectOn302 && result.statusCode === 302 && result.headers?.Location) {
+      return res.redirect(result.headers.Location);
+    }
+    res.status(result.statusCode || 200).send(result.body);
+  } catch (err) {
+    res.status(500).send('Internal Server Error');
+  }
+}
 
-// URL-encoded form 파싱 (필수!)
-app.use(express.urlencoded({ extended: true }));
+// URL-encoded form 파싱 (필수!) - 제한 늘림
+app.use(express.urlencoded({ 
+  extended: true, 
+  limit: '50mb'  // 기본 1mb에서 50mb로 증가
+}));
 
-// 미들웨어: JSON 바디 파싱
-app.use(express.json());
+// 미들웨어: JSON 바디 파싱 - 제한 늘림
+app.use(express.json({ 
+  limit: '50mb'  // 기본 1mb에서 50mb로 증가
+}));
 
 // 기본 라우터
-app.get('/getEventPage/:id', async (req, res) =>  {
-    let event = {
-        pathParameters:{
-            event_key: req.params.id
-        }
-    }
-    let resp = await getEventPage.handler(event);
-    res.send(resp.body);
-});
-
+app.get('/getEventPage/:id', (req, res) =>
+  lambdaProxy(lambdaHandlers.getEventPage.handler, {
+    req, res,
+    eventBuilder: req => ({ pathParameters: { event_key: req.params.id } })
+  })
+);
 
 app.get('/viewOrder/:orderNo/:orderId', async (req, res) =>  {
     const { orderNo, orderId } = req.params;
@@ -43,10 +64,9 @@ app.get('/viewOrder/:orderNo/:orderId', async (req, res) =>  {
             order_id: orderId,
         }
     }
-    let resp = await viewOrder.handler(event);
+    let resp = await lambdaHandlers.viewOrder.handler(event);
     res.send(resp.body);
 });
-
 
 app.get('/viewOrder/:orderNo', async (req, res) =>  {
     const { orderNo, orderId = "noInput" } = req.params;
@@ -56,24 +76,17 @@ app.get('/viewOrder/:orderNo', async (req, res) =>  {
             order_id: orderId,
         }
     }
-    let resp = await viewOrder.handler(event);
+    let resp = await lambdaHandlers.viewOrder.handler(event);
     res.send(resp.body);
 });
 
 // 예시: POST 요청 처리
-app.post('/createOrder', async(req, res) => {
-    const data = req.body;
-    console.log('Received data:', data);
-    let event = {
-          body:data
-    }
-    let resp = await createOrder.handler(event);
-    console.log(resp.statusCode);
-    res.status(resp.statusCode).send(resp.body);
-});
-
-
-
+app.post('/createOrder', (req, res) =>
+  lambdaProxy(lambdaHandlers.createOrder.handler, {
+    req, res,
+    eventBuilder: req => ({ body: req.body })
+  })
+);
 
 // 예시: POST 요청 처리
 app.post('/create-event', async(req, res) => {
@@ -82,7 +95,7 @@ app.post('/create-event', async(req, res) => {
     let event = {
         body:data
     };
-    let resp = await createEvent.handler(event);
+    let resp = await lambdaHandlers.createEvent.handler(event);
     console.log(resp.statusCode);
     res.status(resp.statusCode).send(resp.body);
 });
@@ -92,7 +105,7 @@ app.get('/admin/createEvent' , async (req, res) =>{
     let event = {
         queryStringParameters: {sellerId, eventId, token}
     }
-    let resp = await createEventPage.handler(event);
+    let resp = await lambdaHandlers.createEventPage.handler(event);
     res.send (resp.body);
 });
 
@@ -101,13 +114,19 @@ app.get('/admin/events', async (req, res) =>{
     let event = {
         queryStringParameters: {sellerId, token, filter, sort}
     }
-    let resp = await eventsList.handler(event);
+    let resp = await lambdaHandlers.eventsList.handler(event);
     res.send (resp.body);
+});
 
-})
+app.post('/admin/events/delete', async (req, res) => {
+    const event = {
+        body: JSON.stringify(req.body)
+    };
+    const resp = await lambdaHandlers.deleteEvent.handler(event);
+    res.status(resp.statusCode).json(JSON.parse(resp.body));
+});
 
 app.get('/admin/orders', async (req, res) =>  {
-
     const {eventId, scrollTo,sellerId, token} = req.query;
     console.log("eventId", eventId, "sellerId", sellerId);
     let event = {
@@ -119,7 +138,7 @@ app.get('/admin/orders', async (req, res) =>  {
         }
     }
     console.log("event", event);
-    let resp = await adminOrderStatus.handler(event);
+    let resp = await lambdaHandlers.adminOrderStatus.handler(event);
     res.send(resp.body);
 });
 
@@ -129,11 +148,10 @@ app.post('/admin/updateOrder', async(req, res) => {
     let event = {
         body:req.body
     };
-    let resp = await updateOrderStatus.handler(event);
+    let resp = await lambdaHandlers.updateOrderStatus.handler(event);
 
     console.log("check resp", resp);
 
-    // res.status(resp.statusCode).send(resp.body);
     // 🔁 302 Redirect 처리
     if (resp.statusCode === 302 && resp.headers?.Location) {
         return res.redirect(resp.headers.Location); // 실제 리다이렉션
@@ -144,46 +162,64 @@ app.post('/admin/updateOrder', async(req, res) => {
 });
 
 app.post('/admin/createEvent', async (req,res) =>{
+    try {
+        const data = req.body;
+        console.log('createEvent 요청 크기:', JSON.stringify(data).length, 'bytes');
 
-    const data = req.body;
+        // 2️⃣ Lambda event 형식으로 변환
+        const event = {
+            body: data
+        };
 
-    // 2️⃣ Lambda event 형식으로 변환
-    const event = {
-        body: data
-    };
+        let resp = await lambdaHandlers.createEvent.handler(event);
 
-    let resp = await createEvent.handler(event);
+        // 🔁 302 Redirect 처리
+        if (resp.statusCode === 302 && resp.headers?.Location) {
+            return res.redirect(resp.headers.Location); // 실제 리다이렉션
+        }
 
-    // 🔁 302 Redirect 처리
-    if (resp.statusCode === 302 && resp.headers?.Location) {
-        return res.redirect(resp.headers.Location); // 실제 리다이렉션
+        // 일반 응답 처리
+        res.status(resp.statusCode || 200).send(resp.body);
+    } catch (error) {
+        console.error('createEvent 처리 오류:', error);
+        res.status(500).send('서버 오류가 발생했습니다.');
     }
-
-    // 일반 응답 처리
-    res.status(resp.statusCode || 200).send(resp.body);
 })
 
+// CORS 미들웨어 추가
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
 
-
-app.post('/admin/uploadImage', async (req,res) =>{
-
-    // 1️⃣ req.body를 직접 쓰지 않고, raw body를 수집
-    const rawBodyBuffer = await getRawBody(req);
-
-    // 2️⃣ Lambda event 형식으로 변환
-    const event = {
+// 파일 업로드(예시)
+app.post('/admin/uploadImage', async (req, res) => {
+  try {
+    const rawBodyBuffer = await getRawBody(req, {
+      limit: '50mb'  // raw-body 제한도 늘림
+    });
+    lambdaProxy(lambdaHandlers.uploadImage.handler, {
+      req, res,
+      eventBuilder: req => ({
         headers: req.headers,
         httpMethod: req.method,
         path: req.path,
         isBase64Encoded: true,
-        body: rawBodyBuffer.toString('base64') // form-data는 string으로 넘겨야 Busboy가 파싱 가능
-    };
-
-    let resp = await uploadImage.handler(event);
-
-    // 일반 응답 처리
-    res.status(resp.statusCode || 200).send(resp.body);
-})
+        body: rawBodyBuffer.toString('base64')
+      })
+    });
+  } catch (error) {
+    console.error('파일 업로드 오류:', error);
+    res.status(413).send('요청 본문이 너무 큽니다.');
+  }
+});
 
 app.get('/admin', (req, res) => {
     const sellerId = req.query.sellerId || '';
@@ -224,7 +260,7 @@ app.get('/:id', async (req, res) =>  {
             event_key: req.params.id
         }
     }
-    let resp = await getEventPage.handler(event);
+    let resp = await lambdaHandlers.getEventPage.handler(event);
     res.send(resp.body);
 });
 
@@ -239,6 +275,35 @@ app.post('/api/data', (req, res) => {
     res.status(201).json({ message: 'Data received', data });
 });
 
+// 프로필 관리 라우트
+app.get('/admin/profile', (req, res) =>
+  lambdaProxy(lambdaHandlers.createAdminProfilePage.handler, {
+    req, res,
+    eventBuilder: req => ({ queryStringParameters: req.query })
+  })
+);
+
+app.post('/admin/profile/save', (req, res) =>
+  lambdaProxy(lambdaHandlers.saveAdminProfile.handler, {
+    req, res,
+    eventBuilder: req => ({ body: JSON.stringify(req.body) })
+  })
+);
+
+app.get('/admin/products', (req, res) =>
+  lambdaProxy(lambdaHandlers.createAdminProductsPage?.handler, {
+    req, res,
+    eventBuilder: req => ({ queryStringParameters: req.query })
+  })
+);
+
+// 저장용 Lambda 핸들러가 없다면 임시로 200 OK 반환
+app.post('/admin/products/save', (req, res) =>
+  lambdaProxy(lambdaHandlers.saveAdminProducts.handler, {
+    req, res,
+    eventBuilder: req => ({ body: JSON.stringify(req.body) })
+  })
+);
 
 // 서버 시작
 app.listen(port, () => {

@@ -16,16 +16,21 @@ exports.handler = async (event) => {
         };
     }
 
-    // 1️⃣ 이벤트 목록 조회 (GSI)
+    // 1️⃣ 이벤트 목록 조회 (GSI) - ACTIVE 상태만 조회
     const eventResult = await dynamoDb.query({
         TableName: EVENTS_TABLE,
         IndexName: "sellerId-index",
         KeyConditionExpression: "sellerId = :sid",
-        ExpressionAttributeValues: { ":sid": sellerId },
+        FilterExpression: "eventsFullManage.#status = :status",
+        ExpressionAttributeNames: {
+            "#status": "status"
+        },
+        ExpressionAttributeValues: { 
+            ":sid": sellerId,
+            ":status": "ACTIVE"
+        },
         ScanIndexForward: false
     }).promise();
-
-
 
     const events = eventResult.Items || [];
 
@@ -129,12 +134,42 @@ exports.handler = async (event) => {
           <div class="d-grid gap-2">
             <a href="/admin/orders?eventId=${ev.eventId}&sellerId=${sellerId}&token=${ev.eventId}" class="btn btn-outline-primary btn-sm">주문 현황 보기</a>
             <a href="/admin/createEvent?eventId=${ev.eventId}&sellerId=${sellerId}&token=" class="btn btn-outline-warning btn-sm">이벤트 수정</a>
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteEvent('${ev.eventId}', '${sellerId}')">삭제</button>
           </div>
         </div>
       </div>
     `).join('')}
 
     <div class="text-center text-secondary mt-5 small">© ejc</div>
+    
+    <script>
+    async function deleteEvent(eventId, sellerId) {
+      if (!confirm('정말로 이 이벤트를 삭제하시겠습니까?\\n삭제된 이벤트는 복구할 수 없습니다.')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch('/admin/events/delete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ eventId, sellerId })
+        });
+        
+        if (response.ok) {
+          alert('이벤트가 삭제되었습니다.');
+          location.reload();
+        } else {
+          const error = await response.json();
+          alert('삭제 실패: ' + (error.error || '알 수 없는 오류'));
+        }
+      } catch (error) {
+        alert('삭제 중 오류가 발생했습니다.');
+        console.error('삭제 오류:', error);
+      }
+    }
+    </script>
   </body>
   </html>
   `;

@@ -112,5 +112,21 @@ functions:
           path: admin/createEvent
           method: get
 
+  createAdminLoginPage:
+    handler: backend/lambda/createAdminLoginPage.handler
+    events:
+      - http:
+          path: admin/login
+          method: get
+          cors: true
+
+  adminOauthCallback:
+    handler: backend/lambda/adminOauthCallback.handler
+    events:
+      - http:
+          path: admin/oauth/callback
+          method: get
+          cors: true
+
 plugins:
   - serverless-offline  # 로컬 테스트용 플러그인 (선택)

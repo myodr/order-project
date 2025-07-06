@@ -200,7 +200,8 @@ exports.handler = async (event) => {
       <div class="card shadow-sm border-0" id="order-${order.orderId}">
         <div class="card-body">
           <h5 class="card-title mb-1">주문번호: ${order.orderNo}</h5>
-          <p class="mb-1"><strong>주문자:</strong> ${order.buyerName}</p>
+          <p class="mb-1"><strong>주문자:</strong> ${order.buyerName} (${order.buyerPhone || order.phone || '-'})</p>
+          <p class="mb-1"><strong>받는사람:</strong> ${order.receiverName || '-'} (${order.receiverPhone || '-'})</p>
           
           <p class="mb-1"><strong>상품 내역:</strong></p>
           <ul class="mb-2">
@@ -241,7 +242,8 @@ exports.handler = async (event) => {
         </div>
         <div class="modal-body">
           <p><strong>주문번호:</strong> <span id="modal-orderNo"></span></p>
-          <p><strong>주문자:</strong> <span id="modal-buyerName"></span></p>
+          <p><strong>주문자:</strong> <span id="modal-buyerName"></span> (<span id="modal-buyerPhone"></span>)</p>
+          <p><strong>받는사람:</strong> <span id="modal-receiverName"></span> (<span id="modal-receiverPhone"></span>)</p>
           
           <p><strong>상품내역:</strong></p>
           <ul id="modal-orderItems" class="ps-3"></ul>
@@ -311,6 +313,9 @@ exports.handler = async (event) => {
     document.getElementById("modal-orderId").value = order.orderId;
     document.getElementById("modal-orderNo").innerText = order.orderNo;
     document.getElementById("modal-buyerName").innerText = order.buyerName;
+    document.getElementById("modal-buyerPhone").innerText = order.buyerPhone || order.phone || '-';
+    document.getElementById("modal-receiverName").innerText = order.receiverName || '-';
+    document.getElementById("modal-receiverPhone").innerText = order.receiverPhone || '-';
     document.getElementById("modal-payName").innerText = order.payname;
     document.getElementById("modal-totalAmount").innerText = (order.totalAmount || 0).toLocaleString();
 
@@ -448,9 +453,9 @@ function showAllAddresses() {
     return;
   }
   let html = '<table class="table table-bordered table-sm align-middle"><thead><tr>' +
-    '<th>주문번호</th><th>주문자</th><th>연락처</th><th>주소</th></tr></thead><tbody>';
+    '<th>주문번호</th><th>받는사람</th><th>연락처</th><th>주소</th></tr></thead><tbody>';
   orders.forEach(order => {
-    html += \`<tr><td>\${order.orderNo}</td><td>\${order.buyerName || ''}</td><td>\${order.phone || ''}</td><td>\${order.address || ''}</td></tr>\`;
+    html += \`<tr><td>\${order.orderNo}</td><td>\${order.receiverName || '-'}</td><td>\${order.receiverPhone || '-'}</td><td>\${order.address || ''}</td></tr>\`;
   });
   html += '</tbody></table>';
   listDiv.innerHTML = html;
@@ -466,13 +471,15 @@ function downloadExcel() {
   }
   // 헤더
   const header = [
-    '주문번호', '주문자', '연락처', '상품명', '단가', '수량', '금액', '입금자명', '입금액', '입금확인', '발송여부', '송장번호'
+    '주문번호', '주문자', '주문자연락처', '받는사람', '받는사람연락처', '상품명', '단가', '수량', '금액', '입금자명', '입금액', '입금확인', '발송여부', '송장번호'
   ];
   const rows = [header];
   orders.forEach(order => {
     const orderNo = order.orderNo || '';
     const buyerName = order.buyerName || '';
-    const phone = order.phone || '';
+    const buyerPhone = order.buyerPhone || order.phone || '';
+    const receiverName = order.receiverName || '';
+    const receiverPhone = order.receiverPhone || '';
     const payname = order.payname || '';
     const totalAmount = order.totalAmount || '';
     const isPaid = order.isPaid ? 'O' : 'X';
@@ -484,7 +491,7 @@ function downloadExcel() {
       const quantity = item.quantity || '';
       const amount = unitPrice && quantity ? unitPrice * quantity : '';
       rows.push([
-        orderNo, buyerName, phone, productName, unitPrice, quantity, amount, payname, totalAmount, isPaid, isShipped, trackingNo
+        orderNo, buyerName, buyerPhone, receiverName, receiverPhone, productName, unitPrice, quantity, amount, payname, totalAmount, isPaid, isShipped, trackingNo
       ]);
     });
   });

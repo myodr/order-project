@@ -89,8 +89,8 @@ exports.handler = async (event) => {
 
 
         //orderId 가 일치하거나 핸드폰 뒷자리가 일치하는 경우에만 내용표시
-        console.log( "check", orderId, order.orderId,  order.phone, order.phone.endsWith(orderId) )
-        if(order.orderId!==orderId && !order.phone.endsWith(orderId)){
+        console.log( "check", orderId, order.orderId,  order.buyerPhone, order.buyerPhone, order.buyerPhone.endsWith(orderId) )
+        if(order.orderId!==orderId && !order.buyerPhone.endsWith(orderId)){
             const validFailHtml = `
 <!DOCTYPE html>
 <html lang="ko">
@@ -143,7 +143,15 @@ exports.handler = async (event) => {
           <h5><i class="bi bi-person"></i> 주문자 정보</h5>
           <ul>
             <li><strong>이름:</strong> ${order.buyerName}</li>
-            <li><strong>연락처:</strong> ${order.phone}</li>
+            <li><strong>연락처:</strong> ${order.buyerPhone || order.phone || '-'}</li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h5><i class="bi bi-person-fill-exclamation"></i> 받는사람 정보</h5>
+          <ul>
+            <li><strong>이름:</strong> ${order.receiverName || '-'}</li>
+            <li><strong>연락처:</strong> ${order.receiverPhone || '-'}</li>
           </ul>
         </div>
 

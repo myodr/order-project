@@ -109,31 +109,47 @@ exports.handler = async (event) => {
             <p class="text-center" id="eventPeriod"></p>
 
             <div id="orderLayer" style="display: none;">
-                <form id="orderForm">            
-                    <div id="productList">                
+                <form id="orderForm">
+                    <!-- 상품주문 영역 복구 -->
+                    <div id="productList">
                         <label class="" style="font-size:1.1em;"><i class="bi bi-gift"></i> 상품주문</label>
                         <div id="productsContainer"></div>
                     </div>
                     <div class="totalAmountLayer">
                         <i class="bi bi-cart3"></i> <span id="totalAmount">총 주문금액: 0원</span>
                     </div>                
+                    
+                    <!-- 주문자 정보 -->
+                    <div class="mt-2">
+                        <label class="fw-bold"><i class="bi bi-person-circle"></i> 주문자 정보</label>
+                        <input type="text" class="form-control mt-2" id="buyerName" placeholder="주문자 이름" required>
+                        <input type="tel" class="form-control mt-2" id="buyerPhone" placeholder="주문자 휴대폰 번호(숫자만 입력)" maxlength="13" required>
+                    </div>
+                    <!-- 받는사람 정보 -->
                     <div class="mt-3">
-                        <label class=""><i class="bi bi-truck bg" style="font-size: 1.2rem;"></i> 배송지 주소</label>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <label class="fw-bold mb-0"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-fill-exclamation" viewBox="0 0 16 16">
+  <path d="M11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0m-9 8c0 1 1 1 1 1h5.256A4.5 4.5 0 0 1 8 12.5a4.5 4.5 0 0 1 1.544-3.393Q8.844 9.002 8 9c-5 0-6 3-6 4"/>
+  <path d="M16 12.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0m-3.5-2a.5.5 0 0 0-.5.5v1.5a.5.5 0 0 0 1 0V11a.5.5 0 0 0-.5-.5m0 4a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1"/>
+</svg> 받는사람 정보</label>
+                            <div class="form-check ms-2" style="min-width:140px; text-align:right;">
+                                <input class="form-check-input" style="float:none !important;" type="checkbox" id="sameAsBuyerCheck">
+                                <label class="form-check-label" for="sameAsBuyerCheck">주문자와 동일</label>
+                            </div>
+                        </div>
+                        <input type="text" class="form-control mt-2" id="receiverName" placeholder="받는사람 이름" required>
+                        <input type="tel" class="form-control mt-2" id="receiverPhone" placeholder="받는사람 휴대폰 번호(숫자만 입력)" maxlength="13" required>
+                    </div>
+                    <!-- 배송지 주소 -->
+                    <div class="mt-3">
+                        <label class="fw-bold"><i class="bi bi-truck"></i> 배송지 주소</label>
                         <div class="d-flex">
-                            <input type="text" id="postcode" class="form-control mt-2 me-2 bg-light" placeholder="우편번호를 검색하세요" readonly>                                                       
-                            <button type="button" class="btn btn-warning w-100 mt-2" onclick="execDaumPostcode()">우편번호 검색</button>                                               
+                            <input type="text" id="postcode" class="form-control mt-2 me-2 bg-light" placeholder="우편번호를 검색하세요" readonly>
+                            <button type="button" class="btn btn-warning w-100 mt-2" onclick="execDaumPostcode()">우편번호 검색</button>
                         </div>
                         <input type="text" id="address" class="form-control me-2 mt-2 bg-light" placeholder="우편번호를 검색하세요" readonly>
                         <input type="text" id="address_etc" class="form-control mt-2" placeholder="상세 주소 입력">
                     </div>
-                    <div class="mt-2">
-                        <label><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-person-exclamation" viewBox="0 0 16 16">
-                            <path d="M11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0M8 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4m.256 7a4.5 4.5 0 0 1-.229-1.004H3c.001-.246.154-.986.832-1.664C4.484 10.68 5.711 10 8 10q.39 0 .74.025c.226-.341.496-.65.804-.918Q8.844 9.002 8 9c-5 0-6 3-6 4s1 1 1 1z"/>
-                            <path d="M16 12.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0m-3.5-2a.5.5 0 0 0-.5.5v1.5a.5.5 0 0 0 1 0V11a.5.5 0 0 0-.5-.5m0 4a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1"/>
-                        </svg> 받는 사람</label>
-                        <input type="text" class="form-control mt-2" id="buyername" placeholder="이름(닉네임)">
-                        <input type="tel" id="phone" class="form-control mt-2" placeholder="휴대폰 번호(숫자만 입력하세요)" maxlength="13" title="010-1234-5678 형식으로 입력해주세요">
-                    </div>                        
                     <div class="mt-2">
                         <label><i class="bi bi-credit-card" style="font-size: 1.2rem;"></i> 결제 정보</label>
                         <label class="row ms-2" style="font-size: 0.8rem;">* 결제 관련 안내 - 현재 계좌이체를 지원합니다.</label>
@@ -149,7 +165,7 @@ exports.handler = async (event) => {
                     <div class="form-check mt-3 p-3 border rounded bg-light">
                         <input class="form-check-input" type="checkbox" value="" id="check_infop" style="transform: scale(1.5); margin-left:0px !important; margin-right: 12px;">
                         <label class="form-check-label fw-bold text-primary" for="check_infop" style="font-size: 1.1em; cursor: pointer;">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>개인정보 수집 및 이용에 동의합니다.
+                            개인정보 수집 및 이용에 동의합니다.
                         </label>
                     </div>
                     <div class="mt-2">
@@ -368,6 +384,45 @@ exports.handler = async (event) => {
                     if (!eventData.isExpired) {
                         document.getElementById("orderLayer").style.display = "block";
                         renderProducts();
+
+                        // 주문자와 동일 버튼 및 받는사람 입력란 이벤트 바인딩
+                        setTimeout(() => {
+                            const check = document.getElementById('sameAsBuyerCheck');
+                            if (check) {
+                                check.onchange = function() {
+                                    const buyerName = document.getElementById('buyerName').value.trim();
+                                    const buyerPhone = document.getElementById('buyerPhone').value.trim();
+                                    if (this.checked) {
+                                        if (!buyerName || !buyerPhone) {
+                                            showErrorModal('주문자 정보를 먼저 입력하세요.');
+                                            this.checked = false;
+                                            return;
+                                        }
+                                        document.getElementById('receiverName').value = buyerName;
+                                        document.getElementById('receiverPhone').value = buyerPhone;
+                                        document.getElementById('receiverName').setAttribute('readonly', true);
+                                        document.getElementById('receiverPhone').setAttribute('readonly', true);
+                                        document.getElementById('receiverName').classList.add('bg-light');
+                                        document.getElementById('receiverPhone').classList.add('bg-light');
+                                    } else {
+                                        document.getElementById('receiverName').removeAttribute('readonly');
+                                        document.getElementById('receiverPhone').removeAttribute('readonly');
+                                        document.getElementById('receiverName').classList.remove('bg-light');
+                                        document.getElementById('receiverPhone').classList.remove('bg-light');
+                                    }
+                                };
+                            }
+                            ['receiverName', 'receiverPhone'].forEach(id => {
+                                const el = document.getElementById(id);
+                                if (el) {
+                                    el.oninput = function() {
+                                        document.getElementById('receiverName').removeAttribute('readonly');
+                                        document.getElementById('receiverPhone').removeAttribute('readonly');
+                                        if (check) check.checked = false;
+                                    };
+                                }
+                            });
+                        }, 100);
                     } else {
                         const expiredMessage = document.createElement("h3");
                         expiredMessage.className = "text-danger text-center";
@@ -440,21 +495,25 @@ exports.handler = async (event) => {
                     });
                     
                     // 전화번호 입력 이벤트
-                    const phoneInput = document.getElementById("phone");
-                    phoneInput.addEventListener("input", function (e) {
-                      let value = this.value.replace(/[^0-9]/g, "");
-                      if (value.length > 11) value = value.slice(0, 11);
-                
-                      let formatted = "";
-                      if (value.length <= 3) {
-                        formatted = value;
-                      } else if (value.length <= 7) {
-                        formatted = value.slice(0, 3) + "-" + value.slice(3);
-                      } else {
-                        formatted = value.slice(0, 3) + "-" + value.slice(3, 7) + "-" + value.slice(7);
-                      }
-                
-                      this.value = formatted;
+                    ["buyerPhone", "receiverPhone"].forEach(function(id) {
+                        const phoneInput = document.getElementById(id);
+                        if (phoneInput) {
+                            phoneInput.addEventListener("input", function (e) {
+                                let value = this.value.replace(/[^0-9]/g, "");
+                                if (value.length > 11) value = value.slice(0, 11);
+
+                                let formatted = "";
+                                if (value.length <= 3) {
+                                    formatted = value;
+                                } else if (value.length <= 7) {
+                                    formatted = value.slice(0, 3) + "-" + value.slice(3);
+                                } else {
+                                    formatted = value.slice(0, 3) + "-" + value.slice(3, 7) + "-" + value.slice(7);
+                                }
+
+                                this.value = formatted;
+                            });
+                        }
                     });
                 }
                 
@@ -475,8 +534,10 @@ exports.handler = async (event) => {
                     const postcode = document.getElementById("postcode").value.trim();
                     const address = document.getElementById("address").value.trim();
                     const addressEtc = document.getElementById("address_etc").value.trim();
-                    const buyerName = document.getElementById("buyername").value.trim();
-                    const phone = document.getElementById("phone").value.trim();
+                    const buyerName = document.getElementById("buyerName").value.trim();
+                    const buyerPhone = document.getElementById("buyerPhone").value.trim();
+                    const receiverName = document.getElementById("receiverName").value.trim();
+                    const receiverPhone = document.getElementById("receiverPhone").value.trim();
                     const payname = document.getElementById("payname").value.trim();
                     
                     if (items.length === 0) {
@@ -484,12 +545,12 @@ exports.handler = async (event) => {
                         return;
                     }
                     
-                    if (!postcode || !addressEtc || !buyerName || !phone) {
+                    if (!postcode || !addressEtc || !buyerName || !buyerPhone) {
                         showErrorModal("배송지, 이름, 연락처를 모두 입력해주세요.");
                         return;
                     }
                     const phoneRegex = /^[0-9]{3}-[0-9]{4}-[0-9]{4}$/;
-                    if (!phoneRegex.test(phone)) {
+                    if (!phoneRegex.test(buyerPhone)) {
                       showErrorModal("전화번호는 000-0000-0000 형식으로 입력해주세요.");
                       return;
                     }
@@ -512,7 +573,11 @@ exports.handler = async (event) => {
                         html += "<li>" + item.productName + " x " + item.quantity + "개 - " + (item.quantity * item.price).toLocaleString() + "원</li>";
                     });
                     html += "</ul><p><strong>총 금액:</strong> " + total.toLocaleString() + "원</p>";
-                    html += "<hr><p><strong>수령인:</strong> " + buyerName + "</p><p><strong>연락처:</strong> " + phone + "</p><p><strong>주소:</strong> [" + postcode + "] " + address + " " + addressEtc + "</p>";
+
+                    // 주문자/받는사람 정보 구분 표시
+                    html += "<hr><div class='mb-2'><strong>주문자 정보</strong><br>이름: " + buyerName + "<br>연락처: " + buyerPhone + "</div>";
+                    html += "<div class='mb-2'><strong>받는사람 정보</strong><br>이름: " + receiverName + "<br>연락처: " + receiverPhone + "</div>";
+                    html += "<div class='mb-2'><strong>배송지</strong><br>[" + postcode + "] " + address + " " + addressEtc + "</div>";
                     html += "<hr><p><strong>입금자명:</strong> " + payname + "</p>";
                     
                     document.getElementById("confirmText").innerHTML = html;
@@ -523,8 +588,10 @@ exports.handler = async (event) => {
                 
                 async function submitOrder() {
                     const eventId = eventData.eventId;
-                    const buyerName = document.getElementById("buyername").value.trim();
-                    const phone = document.getElementById("phone").value.trim();
+                    const buyerName = document.getElementById("buyerName").value.trim();
+                    const buyerPhone = document.getElementById("buyerPhone").value.trim();
+                    const receiverName = document.getElementById("receiverName").value.trim();
+                    const receiverPhone = document.getElementById("receiverPhone").value.trim();
                     const postcode = document.getElementById("postcode").value.trim();
                     const address = document.getElementById("address").value.trim();
                     const addressEtc = document.getElementById("address_etc").value.trim();
@@ -549,11 +616,13 @@ exports.handler = async (event) => {
                       eventId,
                       buyerId: "guest",
                       buyerName,
-                      phone,
+                      buyerPhone,
+                      receiverName,
+                      receiverPhone,
                       payname,
                       postcode,
-                      addressEtc, 
-                      address: "[" + postcode + "] " + address + " " + addressEtc,      
+                      addressEtc,
+                      address: "[" + postcode + "] " + address + " " + addressEtc,
                       items,
                       totalAmount
                     };

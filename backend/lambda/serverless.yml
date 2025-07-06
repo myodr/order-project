@@ -19,22 +19,6 @@ provider:
         - lambda:InvokeFunction
       Resource: "*"
 
-resources:
-  Resources:
-    SellerTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: SellerTable
-        AttributeDefinitions:
-          - AttributeName: sellerId
-            AttributeType: S
-        KeySchema:
-          - AttributeName: sellerId
-            KeyType: HASH
-        BillingMode: PAY_PER_REQUEST
-        SSESpecification:
-          SSEEnabled: true
-
 functions:
   uploadImage:
     handler: uploadImage.handler

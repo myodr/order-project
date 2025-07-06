@@ -353,7 +353,7 @@ function addProduct() {
   const productOptions = products.map(p => 
   \`<option value="\${p.productId}" 
            data-name="\${p.productName}"
-           data-descr="\${p.description}" 
+           data-descr="\${p.description || ''}" 
            data-price="\${p.basePrice}" 
            data-thumbnail="\${p.imageUrl || ''}">
     \${p.productName}
@@ -494,15 +494,17 @@ function toggleProductInput(select, idx) {
     
     // TinyMCE 에디터에 내용 설정
     const descriptionTextarea = document.querySelector('textarea[name="description' + idx + '"]');
+    const productDescription = selectedOption.dataset.descr || "";
+    
     if (descriptionTextarea && tinymce.get(descriptionTextarea.id)) {
-        tinymce.get(descriptionTextarea.id).setContent(selectedOption.dataset.descr || "");
+        tinymce.get(descriptionTextarea.id).setContent(productDescription);
     } else if (descriptionTextarea) {
         // TinyMCE가 아직 초기화되지 않은 경우 직접 설정
-        descriptionTextarea.value = selectedOption.dataset.descr || "";
+        descriptionTextarea.value = productDescription;
         // TinyMCE 초기화 대기 후 다시 설정
         setTimeout(() => {
             if (tinymce.get(descriptionTextarea.id)) {
-                tinymce.get(descriptionTextarea.id).setContent(selectedOption.dataset.descr || "");
+                tinymce.get(descriptionTextarea.id).setContent(productDescription);
             }
         }, 100);
     }
@@ -549,8 +551,64 @@ function deleteProduct(idx) {
 }
 
 function showConfirmModal() {
+  // 시작시간/종료시간 검증
+  if (!validateEventTime()) {
+    return;
+  }
+  
   const modal = new bootstrap.Modal(document.getElementById("confirmSubmitModal"));
   modal.show();
+}
+
+function validateEventTime() {
+  const startDate = document.querySelector('input[name="startDate"]').value;
+  const startHour = document.querySelector('select[name="startHour"]').value;
+  const startMinute = document.querySelector('select[name="startMinute"]').value;
+  const endDate = document.querySelector('input[name="endDate"]').value;
+  const endHour = document.querySelector('select[name="endHour"]').value;
+  const endMinute = document.querySelector('select[name="endMinute"]').value;
+  
+  if (!startDate || !endDate) {
+    alert('시작일과 종료일을 모두 입력해주세요.');
+    return false;
+  }
+  
+  // 시작시간과 종료시간 생성
+  const startTime = new Date(startDate + 'T' + startHour.padStart(2, '0') + ':' + startMinute.padStart(2, '0') + ':00');
+  const endTime = new Date(endDate + 'T' + endHour.padStart(2, '0') + ':' + endMinute.padStart(2, '0') + ':00');
+  const now = new Date();
+  
+  // 이벤트 수정 모드인 경우 현재 시간 검증 제외
+  if (!isEditMode) {
+    // 현재 시간과 비교 (신규 생성 시에만)
+    if (startTime <= now) {
+      alert('시작시간은 현재 시간보다 이후여야 합니다.');
+      return false;
+    }
+  }
+  
+  // 시작시간과 종료시간 비교
+  if (startTime >= endTime) {
+    alert('종료시간은 시작시간보다 이후여야 합니다.');
+    return false;
+  }
+  
+  // 이벤트 기간이 너무 짧은 경우 (최소 1시간)
+  const timeDiff = endTime.getTime() - startTime.getTime();
+  const hoursDiff = timeDiff / (1000 * 60 * 60);
+  if (hoursDiff < 1) {
+    alert('이벤트 기간은 최소 1시간 이상이어야 합니다.');
+    return false;
+  }
+  
+  // 이벤트 기간이 너무 긴 경우 (최대 30일)
+  const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
+  if (daysDiff > 30) {
+    alert('이벤트 기간은 최대 30일까지 설정 가능합니다.');
+    return false;
+  }
+  
+  return true;
 }
 
 function submitForm() {

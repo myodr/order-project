@@ -128,5 +128,13 @@ functions:
           method: get
           cors: true
 
+  createAdminLandingPage:
+    handler: backend/lambda/createAdminLandingPage.handler
+    events:
+      - http:
+          path: admin
+          method: get
+          cors: true
+
 plugins:
   - serverless-offline  # 로컬 테스트용 플러그인 (선택)
